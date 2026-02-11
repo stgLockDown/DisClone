@@ -1,16 +1,22 @@
 // ============================================
-// NEXUS CHAT - Backend Server
-// Express + Socket.IO + SQLite
+// NEXUS CHAT — Production Server
+// Express + Socket.IO + SQLite/PostgreSQL
 // ============================================
+
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const express = require('express');
 const http = require('http');
 const { Server: SocketIO } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 
 const { initializeDatabase, seedDefaultData } = require('./database');
 const { initializeWebSocket } = require('./websocket');
+const { requireAuth } = require('./middleware/auth');
 
 // Route imports
 const authRoutes = require('./routes/auth');
@@ -23,121 +29,138 @@ const friendRoutes = require('./routes/friends');
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : [];
+
 const io = new SocketIO(server, {
   cors: {
-    origin: '*',
+    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
     methods: ['GET', 'POST', 'PATCH', 'DELETE']
   },
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  transports: ['websocket', 'polling']
 });
 
-// Make io accessible to routes
 app.set('io', io);
+app.set('trust proxy', 1);
 
-// ============ MIDDLEWARE ============
+// ============ SECURITY MIDDLEWARE ============
 
-app.use(cors());
+// Helmet — sets security headers (CSP relaxed for inline scripts/styles)
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Compression
+app.use(compression());
+
+// CORS
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+  credentials: true,
+}));
+
+// Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Request logging
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    console.log(`[API] ${req.method} ${req.path}`);
-  }
-  next();
+// Rate limiting — general API
+const apiLimiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please slow down.' },
 });
+
+// Stricter rate limit for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,                   // 20 attempts per 15 min
+  message: { success: false, error: 'Too many login attempts. Try again in 15 minutes.' },
+});
+
+app.use('/api/', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
+// Request logging (dev only)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      console.log(`[API] ${req.method} ${req.path}`);
+    }
+    next();
+  });
+}
 
 // ============ API ROUTES ============
 
 app.use('/api/auth', authRoutes);
 app.use('/api/servers', serverRoutes);
-app.use('/api/servers', serverRoutes);  // Also handles /api/servers/channels/:id via sub-routes
-app.use('/api', messageRoutes);         // Handles /api/channels/:id/messages AND /api/messages/:id
+app.use('/api', messageRoutes);
 app.use('/api/friends', friendRoutes);
-app.use('/api', friendRoutes);          // For /api/dms
+app.use('/api', friendRoutes);
 
-// Channel update/delete routes (mounted at /api for /api/channels/:id)
-const { requireAuth } = require('./middleware/auth');
-const { getDB } = require('./database');
-
-// PATCH /api/channels/:id
+// Channel CRUD (top-level /api/channels/:id)
 app.patch('/api/channels/:id', requireAuth, (req, res) => {
+  const { getDB } = require('./database');
   try {
     const db = getDB();
-    const channelId = req.params.id;
-
-    const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
-    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(channel.server_id);
-    if (server.owner_id !== req.user.id) {
-      const adminRole = db.prepare(`
-        SELECT r.id FROM member_roles mr
-        JOIN roles r ON r.id = mr.role_id
-        WHERE mr.server_id = ? AND mr.user_id = ? AND r.name = 'Admin'
-      `).get(channel.server_id, req.user.id);
-      if (!adminRole) return res.status(403).json({ success: false, error: 'Insufficient permissions' });
-    }
-
+    const ch = db.prepare('SELECT * FROM channels WHERE id = ?').get(req.params.id);
+    if (!ch) return res.status(404).json({ success: false, error: 'Channel not found' });
+    const srv = db.prepare('SELECT * FROM servers WHERE id = ?').get(ch.server_id);
+    if (srv.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Insufficient permissions' });
     const allowed = ['name', 'topic', 'icon', 'position'];
     const updates = {};
-    for (const [key, value] of Object.entries(req.body)) {
-      if (allowed.includes(key)) updates[key] = value;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ success: false, error: 'No valid fields to update' });
-    }
-
-    const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-    db.prepare(`UPDATE channels SET ${setClauses} WHERE id = ?`).run(...Object.values(updates), channelId);
-
-    const updated = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
-    res.json({ success: true, channel: updated });
-  } catch (err) {
-    console.error('[Channels] Update error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+    for (const [k, v] of Object.entries(req.body)) { if (allowed.includes(k)) updates[k] = v; }
+    if (!Object.keys(updates).length) return res.status(400).json({ success: false, error: 'Nothing to update' });
+    const set = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+    db.prepare(`UPDATE channels SET ${set} WHERE id = ?`).run(...Object.values(updates), req.params.id);
+    res.json({ success: true, channel: db.prepare('SELECT * FROM channels WHERE id = ?').get(req.params.id) });
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-// DELETE /api/channels/:id
 app.delete('/api/channels/:id', requireAuth, (req, res) => {
+  const { getDB } = require('./database');
   try {
     const db = getDB();
-    const channelId = req.params.id;
-
-    const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
-    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(channel.server_id);
-    if (server.owner_id !== req.user.id) {
-      return res.status(403).json({ success: false, error: 'Only the owner can delete channels' });
-    }
-
-    db.prepare('DELETE FROM channels WHERE id = ?').run(channelId);
+    const ch = db.prepare('SELECT * FROM channels WHERE id = ?').get(req.params.id);
+    if (!ch) return res.status(404).json({ success: false, error: 'Channel not found' });
+    const srv = db.prepare('SELECT * FROM servers WHERE id = ?').get(ch.server_id);
+    if (srv.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Only owner can delete channels' });
+    db.prepare('DELETE FROM channels WHERE id = ?').run(req.params.id);
     res.json({ success: true });
-  } catch (err) {
-    console.error('[Channels] Delete error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    version: '3.2.0',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    database: process.env.DATABASE_TYPE || 'sqlite',
+    env: process.env.NODE_ENV || 'development',
+  });
 });
 
 // ============ STATIC FILES ============
 
-// Serve the frontend from the parent directory
-app.use(express.static(path.join(__dirname, '..')));
+const staticDir = path.join(__dirname, '..');
+app.use(express.static(staticDir, {
+  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+  etag: true,
+}));
 
-// SPA fallback - serve index.html for all non-API routes
+// SPA fallback
 app.use((req, res, next) => {
   if (!req.path.startsWith('/api/') && req.method === 'GET' && req.accepts('html')) {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    res.sendFile(path.join(staticDir, 'index.html'));
   } else {
     next();
   }
@@ -146,29 +169,58 @@ app.use((req, res, next) => {
 // ============ ERROR HANDLING ============
 
 app.use((err, req, res, next) => {
-  console.error('[Server] Error:', err);
+  console.error('[Server] Unhandled error:', err);
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// ============ INITIALIZE ============
+// ============ START ============
 
-const PORT = process.env.PORT || 8080;
+const PORT = parseInt(process.env.PORT) || 8080;
 
-// Initialize database
-initializeDatabase();
-seedDefaultData();
+async function start() {
+  try {
+    console.log('[Server] Starting Nexus Chat...');
+    console.log('[Server] Environment:', process.env.NODE_ENV || 'development');
+    console.log('[Server] Database type:', process.env.DATABASE_TYPE || 'sqlite');
+    
+    // Initialize database (synchronous for SQLite, but wrapped for consistency)
+    console.log('[Server] Initializing database...');
+    initializeDatabase();
+    
+    console.log('[Server] Seeding default data...');
+    seedDefaultData();
+    
+    console.log('[Server] Initializing WebSocket...');
+    initializeWebSocket(io);
 
-// Initialize WebSocket
-initializeWebSocket(io);
+    console.log('[Server] Starting HTTP server on port', PORT);
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n========================================`);
+      console.log(`  NEXUS CHAT v3.2.0`);
+      console.log(`  ${process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+      console.log(`  http://0.0.0.0:${PORT}`);
+      console.log(`  DB: ${process.env.DATABASE_TYPE || 'sqlite'}`);
+      console.log(`========================================\n`);
+    });
+  } catch (err) {
+    console.error('[Server] FATAL ERROR during startup:', err);
+    console.error('[Server] Stack trace:', err.stack);
+    process.exit(1);
+  }
+}
 
-// Start server
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n========================================`);
-  console.log(`  NEXUS CHAT Backend Server`);
-  console.log(`  Running on http://localhost:${PORT}`);
-  console.log(`  API: http://localhost:${PORT}/api`);
-  console.log(`  WebSocket: ws://localhost:${PORT}`);
-  console.log(`========================================\n`);
+// Handle uncaught errors
+process.on('uncaughtException', (err) => {
+  console.error('[Server] Uncaught Exception:', err);
+  console.error('[Server] Stack:', err.stack);
+  process.exit(1);
 });
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+start();
 
 module.exports = { app, server, io };

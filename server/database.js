@@ -12,9 +12,16 @@ let db;
 
 function getDB() {
   if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
+    try {
+      console.log('[DB] Connecting to SQLite database at:', DB_PATH);
+      db = new Database(DB_PATH);
+      db.pragma('journal_mode = WAL');
+      db.pragma('foreign_keys = ON');
+      console.log('[DB] Database connection established');
+    } catch (err) {
+      console.error('[DB] FATAL: Failed to connect to database:', err);
+      throw err;
+    }
   }
   return db;
 }
@@ -22,9 +29,11 @@ function getDB() {
 // ============ SCHEMA ============
 
 function initializeDatabase() {
-  const db = getDB();
+  try {
+    console.log('[DB] Initializing database schema...');
+    const db = getDB();
 
-  db.exec(`
+    db.exec(`
     -- Users table
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -188,22 +197,28 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_dm_participants_user ON dm_participants(user_id);
   `);
 
-  console.log('[DB] Database schema initialized');
+    console.log('[DB] Database schema initialized successfully');
+  } catch (err) {
+    console.error('[DB] FATAL: Failed to initialize database schema:', err);
+    console.error('[DB] Error details:', err.message);
+    throw err;
+  }
 }
 
 // ============ SEED DATA ============
 
 function seedDefaultData() {
-  const db = getDB();
+  try {
+    const db = getDB();
 
-  // Check if already seeded
-  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
-  if (userCount.count > 0) {
-    console.log('[DB] Database already seeded, skipping');
-    return;
-  }
+    // Check if already seeded
+    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get();
+    if (userCount.count > 0) {
+      console.log('[DB] Database already seeded, skipping');
+      return;
+    }
 
-  console.log('[DB] Seeding default data...');
+    console.log('[DB] Seeding default data...');
 
   const defaultPassword = bcrypt.hashSync('password123', 10);
   const colors = ['#f87171', '#a78bfa', '#38bdf8', '#06d6a0', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#e879f9'];
@@ -489,7 +504,12 @@ function seedDefaultData() {
   });
 
   seedTransaction();
-  console.log('[DB] Default data seeded successfully');
+    console.log('[DB] Default data seeded successfully');
+  } catch (err) {
+    console.error('[DB] FATAL: Failed to seed default data:', err);
+    console.error('[DB] Error details:', err.message);
+    throw err;
+  }
 }
 
 module.exports = { getDB, initializeDatabase, seedDefaultData };
