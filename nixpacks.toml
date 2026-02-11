@@ -8,4 +8,4 @@ cmds = ["npm ci"]
 cmds = ["npm rebuild better-sqlite3 --build-from-source"]
 
 [start]
-cmd = "node server/diagnose.js && node server/index.js"
+cmd = "node test-output.js || echo 'Test failed' && node server/diagnose.js && node server/index.js"
