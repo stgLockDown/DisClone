@@ -2,10 +2,19 @@
 // NEXUS CHAT - Database Layer (SQLite)
 // ============================================
 
-const Database = require('better-sqlite3');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+
+// Try to load better-sqlite3, but don't fail if it's not available
+let Database;
+try {
+  Database = require('better-sqlite3');
+  process.stdout.write('[DB] better-sqlite3 loaded successfully\n');
+} catch (err) {
+  process.stdout.write('[DB] WARNING: better-sqlite3 not available: ' + err.message + '\n');
+  process.stdout.write('[DB] SQLite will not be available. Use DATABASE_TYPE=postgres instead.\n');
+}
 
 const DB_PATH = path.join(__dirname, 'nexus.db');
 let db;
@@ -13,13 +22,16 @@ let db;
 function getDB() {
   if (!db) {
     try {
-      console.log('[DB] Connecting to SQLite database at:', DB_PATH);
+      if (!Database) {
+        throw new Error('better-sqlite3 is not available. Please set DATABASE_TYPE=postgres or install better-sqlite3.');
+      }
+      process.stdout.write('[DB] Connecting to SQLite database at: ' + DB_PATH + '\n');
       db = new Database(DB_PATH);
       db.pragma('journal_mode = WAL');
       db.pragma('foreign_keys = ON');
-      console.log('[DB] Database connection established');
+      process.stdout.write('[DB] Database connection established\n');
     } catch (err) {
-      console.error('[DB] FATAL: Failed to connect to database:', err);
+      process.stdout.write('[DB] FATAL: Failed to connect to database: ' + err.message + '\n');
       throw err;
     }
   }
