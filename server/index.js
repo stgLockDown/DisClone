@@ -3,6 +3,9 @@
 // Express + Socket.IO + SQLite/PostgreSQL
 // ============================================
 
+// Force stdout to be unbuffered for Railway logs
+process.stdout.write('=== NEXUS CHAT STARTING ===\n');
+
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 const express = require('express');
@@ -137,8 +140,9 @@ app.delete('/api/channels/:id', requireAuth, (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-// Health check
+// Health check - must work even before database is ready
 app.get('/api/health', (req, res) => {
+  process.stdout.write('[Health] Health check requested\n');
   res.json({
     status: 'ok',
     version: '3.2.0',
@@ -146,7 +150,21 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     database: process.env.DATABASE_TYPE || 'sqlite',
     env: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 8080,
   });
+});
+
+// Root endpoint for quick testing
+app.get('/', (req, res) => {
+  if (req.accepts('html')) {
+    res.sendFile(require('path').join(__dirname, '..', 'index.html'));
+  } else {
+    res.json({ 
+      message: 'Nexus Chat API', 
+      version: '3.2.0',
+      health: '/api/health' 
+    });
+  }
 });
 
 // ============ STATIC FILES ============
@@ -179,48 +197,65 @@ const PORT = parseInt(process.env.PORT) || 8080;
 
 async function start() {
   try {
-    console.log('[Server] Starting Nexus Chat...');
-    console.log('[Server] Environment:', process.env.NODE_ENV || 'development');
-    console.log('[Server] Database type:', process.env.DATABASE_TYPE || 'sqlite');
+    process.stdout.write('[Server] Starting Nexus Chat...\n');
+    process.stdout.write('[Server] Node version: ' + process.version + '\n');
+    process.stdout.write('[Server] Environment: ' + (process.env.NODE_ENV || 'development') + '\n');
+    process.stdout.write('[Server] Database type: ' + (process.env.DATABASE_TYPE || 'sqlite') + '\n');
+    process.stdout.write('[Server] PORT: ' + PORT + '\n');
     
-    // Initialize database (synchronous for SQLite, but wrapped for consistency)
-    console.log('[Server] Initializing database...');
+    // Start HTTP server FIRST so Railway can connect
+    process.stdout.write('[Server] Starting HTTP server on port ' + PORT + '...\n');
+    await new Promise((resolve, reject) => {
+      server.listen(PORT, '0.0.0.0', (err) => {
+        if (err) {
+          reject(err);
+        } else {
+          process.stdout.write('[Server] HTTP server listening on 0.0.0.0:' + PORT + '\n');
+          resolve();
+        }
+      });
+    });
+    
+    // Now initialize database
+    process.stdout.write('[Server] Initializing database...\n');
     initializeDatabase();
     
-    console.log('[Server] Seeding default data...');
+    process.stdout.write('[Server] Seeding default data...\n');
     seedDefaultData();
     
-    console.log('[Server] Initializing WebSocket...');
+    process.stdout.write('[Server] Initializing WebSocket...\n');
     initializeWebSocket(io);
 
-    console.log('[Server] Starting HTTP server on port', PORT);
-    server.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n========================================`);
-      console.log(`  NEXUS CHAT v3.2.0`);
-      console.log(`  ${process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT'}`);
-      console.log(`  http://0.0.0.0:${PORT}`);
-      console.log(`  DB: ${process.env.DATABASE_TYPE || 'sqlite'}`);
-      console.log(`========================================\n`);
-    });
+    process.stdout.write('\n========================================\n');
+    process.stdout.write('  NEXUS CHAT v3.2.0\n');
+    process.stdout.write('  ' + (process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT') + '\n');
+    process.stdout.write('  http://0.0.0.0:' + PORT + '\n');
+    process.stdout.write('  DB: ' + (process.env.DATABASE_TYPE || 'sqlite') + '\n');
+    process.stdout.write('========================================\n\n');
   } catch (err) {
-    console.error('[Server] FATAL ERROR during startup:', err);
-    console.error('[Server] Stack trace:', err.stack);
+    process.stdout.write('[Server] FATAL ERROR during startup: ' + err.message + '\n');
+    process.stdout.write('[Server] Stack trace: ' + err.stack + '\n');
     process.exit(1);
   }
 }
 
-// Handle uncaught errors
+// Handle uncaught errors BEFORE starting
 process.on('uncaughtException', (err) => {
-  console.error('[Server] Uncaught Exception:', err);
-  console.error('[Server] Stack:', err.stack);
+  process.stdout.write('[Server] Uncaught Exception: ' + err.message + '\n');
+  process.stdout.write('[Server] Stack: ' + err.stack + '\n');
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
+  process.stdout.write('[Server] Unhandled Rejection: ' + String(reason) + '\n');
   process.exit(1);
 });
 
-start();
+// Start the server and handle any startup errors
+start().catch(err => {
+  process.stdout.write('[Server] FATAL: Failed to start: ' + err.message + '\n');
+  process.stdout.write('[Server] Stack: ' + err.stack + '\n');
+  process.exit(1);
+});
 
 module.exports = { app, server, io };
