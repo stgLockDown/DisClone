@@ -6,7 +6,3 @@ cmds = ["npm ci"]
 
 [phases.build]
 cmds = ["npm rebuild better-sqlite3 --build-from-source"]
-
-[start]
-# Run diagnostic first to see what's failing, then start the server
-cmd = "node server/diagnose.js && node server/index.js"

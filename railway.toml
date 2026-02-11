@@ -2,13 +2,8 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "node server/index.js"
+startCommand = "node server/diagnose.js && node server/index.js"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
-
-[[services]]
-service_type = "web"
-protocol = "tcp"
-internal_port = 8080
