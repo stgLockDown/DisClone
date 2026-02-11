@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Chat — Developer Portal</title>
+  <link rel="stylesheet" href="dev-portal.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="dev-nav">
+  <div class="dev-nav-logo">
+    <div class="logo-icon">N</div>
+    <span>Nexus</span>
+    <span class="badge">Developers</span>
+  </div>
+  <div class="dev-nav-links">
+    <a class="dev-nav-link active" href="#docs">Documentation</a>
+    <a class="dev-nav-link" href="#sdk">SDK Reference</a>
+    <a class="dev-nav-link" href="#plugins">Plugins</a>
+    <a class="dev-nav-link" href="#streaming">Streaming</a>
+    <a class="dev-nav-link" href="#bots">Bots</a>
+    <a class="dev-nav-link" href="#webhooks">Webhooks</a>
+  </div>
+  <div class="dev-nav-actions">
+    <a class="dev-btn dev-btn-outline" href="index.html">Open App</a>
+    <a class="dev-btn dev-btn-primary" href="#get-started">Get Started</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="dev-hero">
+  <h1>Build on <span class="gradient-text">Nexus Chat</span></h1>
+  <p>A powerful, developer-friendly SDK for creating plugins, bots, integrations, and custom experiences. Not open source — but built for extensibility.</p>
+  <div class="dev-hero-actions">
+    <a class="dev-btn dev-btn-primary" href="#get-started">📖 Read the Docs</a>
+    <a class="dev-btn dev-btn-secondary" href="#sdk">⚡ SDK Reference</a>
+  </div>
+</section>
+
+<!-- Feature Cards -->
+<section class="dev-section" id="docs">
+  <div class="dev-section-header">
+    <div class="dev-section-label">Platform Capabilities</div>
+    <h2>Everything You Need to Build</h2>
+    <p>Nexus Chat gives developers a rich set of APIs and tools to integrate anything into their servers.</p>
+  </div>
+
+  <div class="dev-cards">
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(14,165,233,0.12);">🔌</div>
+      <h3>Plugin SDK</h3>
+      <p>Register plugins with custom commands, UI widgets, event hooks, and persistent storage. Full lifecycle management with enable/disable support.</p>
+      <span class="dev-tag stable">Stable</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(6,214,160,0.12);">🤖</div>
+      <h3>Bot Framework</h3>
+      <p>Create bots with prefix commands, message handlers, reaction listeners, and member event hooks. Bots appear as real users in the member list.</p>
+      <span class="dev-tag stable">Stable</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(168,85,247,0.12);">🔗</div>
+      <h3>Webhooks</h3>
+      <p>Send messages to any channel programmatically. Custom usernames, avatars, and rich embeds. Perfect for CI/CD, alerts, and external integrations.</p>
+      <span class="dev-tag stable">Stable</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(239,68,68,0.12);">📺</div>
+      <h3>Screen Streaming</h3>
+      <p>Stream your screen, a specific window, or camera to any voice channel. Viewers can watch in real-time with quality controls up to 1080p 60fps.</p>
+      <span class="dev-tag new">New</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(245,158,11,0.12);">🎨</div>
+      <h3>UI Widgets</h3>
+      <p>Inject custom UI into the sidebar, header, chat input, or message area. Create modals, embeds, toasts, and interactive components.</p>
+      <span class="dev-tag beta">Beta</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(236,72,153,0.12);">🏗️</div>
+      <h3>Server Management API</h3>
+      <p>Programmatically create servers, channels, roles, and permissions. Full control over server structure and configuration.</p>
+      <span class="dev-tag stable">Stable</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(34,197,94,0.12);">💾</div>
+      <h3>Plugin Storage</h3>
+      <p>Persistent key-value storage scoped per plugin. Store settings, user data, leaderboards, or any structured data your plugin needs.</p>
+      <span class="dev-tag stable">Stable</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(99,102,241,0.12);">⚡</div>
+      <h3>Event System</h3>
+      <p>Subscribe to 30+ events including messages, reactions, member joins, voice state changes, stream events, and more. Priority-based listeners.</p>
+      <span class="dev-tag stable">Stable</span>
+    </div>
+    <div class="dev-card">
+      <div class="dev-card-icon" style="background:rgba(20,184,166,0.12);">🛡️</div>
+      <h3>Permissions</h3>
+      <p>Fine-grained permission system with 14 permission flags. Control who can use commands, manage plugins, stream, and more.</p>
+      <span class="dev-tag stable">Stable</span>
+    </div>
+  </div>
+</section>
+
+<!-- Get Started -->
+<section class="dev-section" id="get-started" style="border-top:1px solid var(--dev-border);">
+  <div class="dev-section-header">
+    <div class="dev-section-label">Quick Start</div>
+    <h2>Create Your First Plugin in 30 Seconds</h2>
+    <p>The Nexus SDK is loaded automatically. Just call <code style="background:var(--dev-code-bg);padding:2px 6px;border-radius:4px;font-family:'Fira Code',monospace;font-size:13px;">NexusSDK.createPlugin()</code> and you're live.</p>
+  </div>
+
+  <div class="dev-code-block">
+    <div class="dev-code-header">
+      <span class="dev-code-lang">JavaScript — my-plugin.js</span>
+      <button class="dev-code-copy" onclick="copyCode(this)">📋 Copy</button>
+    </div>
+    <pre><span class="cm">// Register a plugin with the Nexus SDK</span>
+<span class="kw">NexusSDK</span>.<span class="fn">createPlugin</span>({
+  <span class="prop">id</span>: <span class="str">'my-awesome-plugin'</span>,
+  <span class="prop">name</span>: <span class="str">'My Awesome Plugin'</span>,
+  <span class="prop">version</span>: <span class="str">'1.0.0'</span>,
+  <span class="prop">author</span>: <span class="str">'YourName'</span>,
+  <span class="prop">description</span>: <span class="str">'Adds cool features to the server'</span>
+}, (<span class="kw">ctx</span>) <span class="op">=></span> {
+
+  <span class="cm">// Register a slash command</span>
+  ctx.<span class="fn">registerCommand</span>({
+    <span class="prop">name</span>: <span class="str">'hello'</span>,
+    <span class="prop">description</span>: <span class="str">'Say hello to the channel'</span>,
+    <span class="prop">execute</span>: (<span class="kw">context</span>) <span class="op">=></span> {
+      <span class="kw">return</span> <span class="str">'Hello from my plugin! 👋'</span>;
+    }
+  });
+
+  <span class="cm">// Listen for messages</span>
+  ctx.<span class="fn">on</span>(<span class="str">'message:send'</span>, (<span class="kw">msg</span>) <span class="op">=></span> {
+    console.<span class="fn">log</span>(<span class="str">'New message:'</span>, msg.content);
+  });
+
+  <span class="cm">// Use persistent storage</span>
+  ctx.store.<span class="fn">set</span>(<span class="str">'greeting_count'</span>, <span class="num">0</span>);
+
+  ctx.<span class="fn">showToast</span>(<span class="str">'Plugin loaded! 🎉'</span>);
+});</pre>
+  </div>
+</section>
+
+<!-- Bot Framework -->
+<section class="dev-section" id="bots" style="border-top:1px solid var(--dev-border);">
+  <div class="dev-section-header">
+    <div class="dev-section-label">Bot Framework</div>
+    <h2>Build Powerful Bots</h2>
+    <p>Create bots that respond to commands, react to events, and interact with users — all within your server.</p>
+  </div>
+
+  <div class="dev-code-block">
+    <div class="dev-code-header">
+      <span class="dev-code-lang">JavaScript — moderation-bot.js</span>
+      <button class="dev-code-copy" onclick="copyCode(this)">📋 Copy</button>
+    </div>
+    <pre><span class="cm">// Create a moderation bot</span>
+<span class="kw">NexusSDK</span>.<span class="fn">createPlugin</span>({
+  <span class="prop">id</span>: <span class="str">'mod-bot'</span>,
+  <span class="prop">name</span>: <span class="str">'ModBot'</span>,
+  <span class="prop">version</span>: <span class="str">'1.0.0'</span>,
+  <span class="prop">author</span>: <span class="str">'NexusTeam'</span>
+}, (<span class="kw">ctx</span>) <span class="op">=></span> {
+
+  <span class="cm">// Create the bot user</span>
+  <span class="kw">const</span> bot = ctx.<span class="fn">createBot</span>({
+    <span class="prop">id</span>: <span class="str">'bot-mod'</span>,
+    <span class="prop">name</span>: <span class="str">'ModBot'</span>,
+    <span class="prop">color</span>: <span class="str">'#ef4444'</span>,
+    <span class="prop">prefix</span>: <span class="str">'!'</span>,
+    <span class="prop">description</span>: <span class="str">'Server moderation assistant'</span>
+  });
+
+  <span class="cm">// Add commands</span>
+  <span class="kw">NexusSDK</span>.bots.<span class="fn">addCommand</span>(bot.id, {
+    <span class="prop">name</span>: <span class="str">'warn'</span>,
+    <span class="prop">description</span>: <span class="str">'Warn a user'</span>,
+    <span class="prop">execute</span>: ({ <span class="kw">args</span> }) <span class="op">=></span> {
+      <span class="kw">const</span> user = args[<span class="num">0</span>];
+      <span class="kw">const</span> reason = args.<span class="fn">slice</span>(<span class="num">1</span>).<span class="fn">join</span>(<span class="str">' '</span>);
+      <span class="kw">return</span> <span class="str">`⚠️ **Warning** — ${user}: ${reason || 'No reason given'}`</span>;
+    }
+  });
+
+  <span class="kw">NexusSDK</span>.bots.<span class="fn">addCommand</span>(bot.id, {
+    <span class="prop">name</span>: <span class="str">'poll'</span>,
+    <span class="prop">description</span>: <span class="str">'Create a quick poll'</span>,
+    <span class="prop">execute</span>: ({ <span class="kw">args</span> }) <span class="op">=></span> {
+      <span class="kw">const</span> question = args.<span class="fn">join</span>(<span class="str">' '</span>);
+      <span class="kw">return</span> <span class="str">`📊 **Poll:** ${question}\n\n👍 Yes  |  👎 No  |  🤷 Maybe`</span>;
+    }
+  });
+});</pre>
+  </div>
+</section>
+
+<!-- Webhooks -->
+<section class="dev-section" id="webhooks" style="border-top:1px solid var(--dev-border);">
+  <div class="dev-section-header">
+    <div class="dev-section-label">Webhooks</div>
+    <h2>Integrate External Services</h2>
+    <p>Push messages from any external service into your Nexus channels. Perfect for alerts, CI/CD, and automation.</p>
+  </div>
+
+  <div class="dev-code-block">
+    <div class="dev-code-header">
+      <span class="dev-code-lang">JavaScript — webhook-example.js</span>
+      <button class="dev-code-copy" onclick="copyCode(this)">📋 Copy</button>
+    </div>
+    <pre><span class="cm">// Create a webhook for GitHub notifications</span>
+<span class="kw">const</span> webhook = <span class="kw">NexusSDK</span>.webhooks.<span class="fn">create</span>({
+  <span class="prop">name</span>: <span class="str">'GitHub Alerts'</span>,
+  <span class="prop">channelId</span>: <span class="str">'ch-dev'</span>,
+  <span class="prop">avatar</span>: <span class="str">'🐙'</span>
+});
+
+console.<span class="fn">log</span>(<span class="str">'Webhook URL:'</span>, webhook.url);
+
+<span class="cm">// Send a message through the webhook</span>
+<span class="kw">NexusSDK</span>.webhooks.<span class="fn">send</span>(webhook.id, {
+  <span class="prop">username</span>: <span class="str">'GitHub'</span>,
+  <span class="prop">content</span>: <span class="str">'🚀 New release published: **v2.0.0**'</span>,
+  <span class="prop">embeds</span>: [{
+    <span class="prop">title</span>: <span class="str">'Release v2.0.0'</span>,
+    <span class="prop">description</span>: <span class="str">'Major update with streaming support'</span>,
+    <span class="prop">color</span>: <span class="str">'#22c55e'</span>,
+    <span class="prop">fields</span>: [
+      { <span class="prop">name</span>: <span class="str">'Changes'</span>, <span class="prop">value</span>: <span class="str">'15 commits, 8 files changed'</span> },
+      { <span class="prop">name</span>: <span class="str">'Author'</span>, <span class="prop">value</span>: <span class="str">'@developer'</span> }
+    ]
+  }]
+});</pre>
+  </div>
+</section>
+
+<!-- Streaming API -->
+<section class="dev-section" id="streaming" style="border-top:1px solid var(--dev-border);">
+  <div class="dev-section-header">
+    <div class="dev-section-label">Streaming API</div>
+    <h2>Share Your Screen in Any Server</h2>
+    <p>Stream your screen, a specific application window, or your camera to voice channels. Viewers watch in real-time with adaptive quality.</p>
+  </div>
+
+  <!-- Stream Demo -->
+  <div class="stream-demo">
+    <div class="stream-demo-header">
+      <span class="stream-live-badge">● LIVE</span>
+      <span style="font-weight:600;">NexusUser</span>
+      <span style="color:var(--dev-text-3);font-size:13px;">is streaming in <strong style="color:var(--dev-accent);">#General Voice</strong></span>
+    </div>
+    <div class="stream-demo-screen" id="streamScreen">
+      <div class="stream-demo-placeholder" id="streamPlaceholder">
+        <div class="icon">🖥️</div>
+        <div>Click "Start Stream" to share your screen</div>
+      </div>
+      <video id="streamVideo" style="width:100%;height:100%;object-fit:contain;display:none;" autoplay muted></video>
+    </div>
+    <div class="stream-demo-controls">
+      <button class="stream-control-btn" id="startStreamBtn" onclick="toggleStream()" title="Start/Stop Stream">🖥️</button>
+      <button class="stream-control-btn" id="streamMicBtn" onclick="toggleStreamMic()" title="Mute">🎤</button>
+      <button class="stream-control-btn" id="streamCamBtn" onclick="toggleStreamCam()" title="Camera">📷</button>
+      <button class="stream-control-btn" onclick="cycleStreamQuality()" title="Quality" id="qualityBtn">HD</button>
+      <button class="stream-control-btn danger" onclick="stopStream()" title="End Stream">✕</button>
+      <div class="stream-viewers">
+        <span>👁️</span>
+        <span id="viewerCount">0 viewers</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dev-code-block">
+    <div class="dev-code-header">
+      <span class="dev-code-lang">JavaScript — streaming-api.js</span>
+      <button class="dev-code-copy" onclick="copyCode(this)">📋 Copy</button>
+    </div>
+    <pre><span class="cm">// Start a screen share stream</span>
+<span class="kw">const</span> stream = <span class="kw">await</span> <span class="kw">NexusSDK</span>.streaming.<span class="fn">startStream</span>({
+  <span class="prop">channelId</span>: <span class="str">'vc-general'</span>,
+  <span class="prop">type</span>: <span class="str">'screen'</span>,        <span class="cm">// 'screen' | 'window' | 'camera'</span>
+  <span class="prop">quality</span>: <span class="str">'1080p'</span>,       <span class="cm">// 'auto' | '720p' | '1080p' | 'source'</span>
+  <span class="prop">frameRate</span>: <span class="num">60</span>,          <span class="cm">// 15, 30, or 60 fps</span>
+  <span class="prop">audio</span>: <span class="kw">true</span>             <span class="cm">// Include system audio</span>
+});
+
+<span class="cm">// Listen for viewers joining</span>
+<span class="kw">NexusSDK</span>.events.<span class="fn">on</span>(<span class="str">'stream:viewer-joined'</span>, ({ <span class="kw">streamId</span>, <span class="kw">userId</span> }) <span class="op">=></span> {
+  console.<span class="fn">log</span>(<span class="str">`New viewer: ${userId}`</span>);
+});
+
+<span class="cm">// Change quality mid-stream</span>
+<span class="kw">NexusSDK</span>.streaming.<span class="fn">setQuality</span>(stream.id, <span class="str">'720p'</span>);
+
+<span class="cm">// Stop the stream</span>
+<span class="kw">NexusSDK</span>.streaming.<span class="fn">stopStream</span>(stream.id);</pre>
+  </div>
+
+  <div style="margin-top:32px;">
+    <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;">Stream Types</h3>
+    <div class="dev-cards" style="grid-template-columns:repeat(3,1fr);">
+      <div class="dev-card">
+        <div class="dev-card-icon" style="background:rgba(14,165,233,0.12);">🖥️</div>
+        <h3>Screen Share</h3>
+        <p>Share your entire screen. Great for presentations, tutorials, and showing your desktop.</p>
+      </div>
+      <div class="dev-card">
+        <div class="dev-card-icon" style="background:rgba(6,214,160,0.12);">🪟</div>
+        <h3>Window Share</h3>
+        <p>Share a specific application window. Perfect for streaming games without showing your desktop.</p>
+      </div>
+      <div class="dev-card">
+        <div class="dev-card-icon" style="background:rgba(168,85,247,0.12);">📷</div>
+        <h3>Camera</h3>
+        <p>Share your webcam feed. Use for face-cam, video calls, or picture-in-picture with screen share.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SDK Reference -->
+<section class="dev-section" id="sdk" style="border-top:1px solid var(--dev-border);">
+  <div class="dev-section-header">
+    <div class="dev-section-label">API Reference</div>
+    <h2>SDK Methods</h2>
+    <p>Complete reference for all NexusSDK methods and properties.</p>
+  </div>
+
+  <div class="dev-tabs">
+    <button class="dev-tab active" onclick="switchDevTab(this, 'core')">Core</button>
+    <button class="dev-tab" onclick="switchDevTab(this, 'commands')">Commands</button>
+    <button class="dev-tab" onclick="switchDevTab(this, 'bots')">Bots</button>
+    <button class="dev-tab" onclick="switchDevTab(this, 'streaming-ref')">Streaming</button>
+    <button class="dev-tab" onclick="switchDevTab(this, 'events')">Events</button>
+    <button class="dev-tab" onclick="switchDevTab(this, 'ui')">UI</button>
+  </div>
+
+  <div id="tab-core">
+    <table class="dev-api-table">
+      <thead><tr><th>Method</th><th>Description</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>NexusSDK.createPlugin(manifest, setup)</code></td><td>Register a new plugin with lifecycle hooks</td><td>Plugin object</td></tr>
+        <tr><td><code>NexusSDK.plugins.get(id)</code></td><td>Get a registered plugin by ID</td><td>Plugin or undefined</td></tr>
+        <tr><td><code>NexusSDK.plugins.getAll()</code></td><td>List all registered plugins</td><td>Array of Plugins</td></tr>
+        <tr><td><code>NexusSDK.plugins.enable(id)</code></td><td>Enable a disabled plugin</td><td>void</td></tr>
+        <tr><td><code>NexusSDK.plugins.disable(id)</code></td><td>Disable a plugin without unregistering</td><td>void</td></tr>
+        <tr><td><code>NexusSDK.plugins.unregister(id)</code></td><td>Fully remove a plugin and clean up</td><td>boolean</td></tr>
+        <tr><td><code>NexusSDK.storage.getStore(pluginId)</code></td><td>Get persistent key-value store for a plugin</td><td>Store object</td></tr>
+        <tr><td><code>NexusSDK.getInfo()</code></td><td>Get SDK stats (plugins, commands, bots count)</td><td>Info object</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="tab-commands" style="display:none;">
+    <table class="dev-api-table">
+      <thead><tr><th>Method</th><th>Description</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>NexusSDK.commands.register(config)</code></td><td>Register a new slash command</td><td>Command name</td></tr>
+        <tr><td><code>NexusSDK.commands.unregister(name)</code></td><td>Remove a command</td><td>boolean</td></tr>
+        <tr><td><code>NexusSDK.commands.execute(name, ctx)</code></td><td>Execute a command programmatically</td><td>Promise with result</td></tr>
+        <tr><td><code>NexusSDK.commands.getAll()</code></td><td>List all registered commands</td><td>Array of Commands</td></tr>
+        <tr><td><code>NexusSDK.commands.search(query)</code></td><td>Search commands by name or description</td><td>Array of Commands</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="tab-bots" style="display:none;">
+    <table class="dev-api-table">
+      <thead><tr><th>Method</th><th>Description</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>NexusSDK.bots.create(config)</code></td><td>Create a new bot user</td><td>Bot object</td></tr>
+        <tr><td><code>NexusSDK.bots.addCommand(botId, config)</code></td><td>Add a prefix command to a bot</td><td>void</td></tr>
+        <tr><td><code>NexusSDK.bots.processMessage(msg)</code></td><td>Process a message through all bots</td><td>Promise with response</td></tr>
+        <tr><td><code>NexusSDK.bots.enable(botId)</code></td><td>Enable a bot</td><td>void</td></tr>
+        <tr><td><code>NexusSDK.bots.disable(botId)</code></td><td>Disable a bot</td><td>void</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="tab-streaming-ref" style="display:none;">
+    <table class="dev-api-table">
+      <thead><tr><th>Method</th><th>Description</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>NexusSDK.streaming.startStream(config)</code></td><td>Start a new screen/window/camera stream</td><td>Promise with Stream</td></tr>
+        <tr><td><code>NexusSDK.streaming.stopStream(id)</code></td><td>Stop an active stream</td><td>boolean</td></tr>
+        <tr><td><code>NexusSDK.streaming.joinStream(id, userId)</code></td><td>Join as a viewer</td><td>boolean</td></tr>
+        <tr><td><code>NexusSDK.streaming.leaveStream(id, userId)</code></td><td>Leave a stream</td><td>boolean</td></tr>
+        <tr><td><code>NexusSDK.streaming.getActiveStreams()</code></td><td>Get all live streams</td><td>Array of Streams</td></tr>
+        <tr><td><code>NexusSDK.streaming.setQuality(id, quality)</code></td><td>Change stream quality</td><td>void</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="tab-events" style="display:none;">
+    <table class="dev-api-table">
+      <thead><tr><th>Event</th><th>Description</th><th>Payload</th></tr></thead>
+      <tbody>
+        <tr><td><code>message:send</code></td><td>A message was sent</td><td>Message object</td></tr>
+        <tr><td><code>message:edit</code></td><td>A message was edited</td><td>Message object</td></tr>
+        <tr><td><code>message:delete</code></td><td>A message was deleted</td><td>{ messageId, channelId }</td></tr>
+        <tr><td><code>reaction:add</code></td><td>A reaction was added</td><td>{ messageId, emoji, userId }</td></tr>
+        <tr><td><code>reaction:remove</code></td><td>A reaction was removed</td><td>{ messageId, emoji, userId }</td></tr>
+        <tr><td><code>member:join</code></td><td>A member joined the server</td><td>User object</td></tr>
+        <tr><td><code>member:leave</code></td><td>A member left the server</td><td>User object</td></tr>
+        <tr><td><code>voice:join</code></td><td>A user joined a voice channel</td><td>{ userId, channelId }</td></tr>
+        <tr><td><code>voice:leave</code></td><td>A user left a voice channel</td><td>{ userId, channelId }</td></tr>
+        <tr><td><code>stream:starting</code></td><td>A stream is starting</td><td>Stream object</td></tr>
+        <tr><td><code>stream:stopped</code></td><td>A stream was stopped</td><td>Stream object</td></tr>
+        <tr><td><code>stream:viewer-joined</code></td><td>A viewer joined a stream</td><td>{ streamId, userId }</td></tr>
+        <tr><td><code>stream:viewer-left</code></td><td>A viewer left a stream</td><td>{ streamId, userId }</td></tr>
+        <tr><td><code>webhook:message</code></td><td>A webhook sent a message</td><td>Message object</td></tr>
+        <tr><td><code>ui:widget-added</code></td><td>A UI widget was registered</td><td>Widget object</td></tr>
+        <tr><td><code>ui:toast</code></td><td>A toast notification was triggered</td><td>{ message, type }</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="tab-ui" style="display:none;">
+    <table class="dev-api-table">
+      <thead><tr><th>Method</th><th>Description</th><th>Returns</th></tr></thead>
+      <tbody>
+        <tr><td><code>NexusSDK.ui.createWidget(config)</code></td><td>Add a custom UI widget</td><td>Widget ID</td></tr>
+        <tr><td><code>NexusSDK.ui.removeWidget(id)</code></td><td>Remove a widget</td><td>void</td></tr>
+        <tr><td><code>NexusSDK.ui.getWidgets(position)</code></td><td>Get widgets by position</td><td>Array of Widgets</td></tr>
+        <tr><td><code>NexusSDK.ui.createEmbed(config)</code></td><td>Create a rich embed object</td><td>Embed object</td></tr>
+        <tr><td><code>NexusSDK.ui.showModal(config)</code></td><td>Show a modal dialog</td><td>void</td></tr>
+        <tr><td><code>NexusSDK.ui.showToast(msg, type)</code></td><td>Show a toast notification</td><td>void</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Plugins Section -->
+<section class="dev-section" id="plugins" style="border-top:1px solid var(--dev-border);">
+  <div class="dev-section-header">
+    <div class="dev-section-label">Plugin Marketplace</div>
+    <h2>Example Plugins</h2>
+    <p>Pre-built plugins you can install or use as templates for your own creations.</p>
+  </div>
+
+  <div class="dev-cards">
+    <div class="dev-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="dev-card-icon" style="background:rgba(239,68,68,0.12);margin:0;">🛡️</div>
+        <div><h3 style="margin:0;">AutoMod</h3><div style="font-size:12px;color:var(--dev-text-3);">by NexusTeam</div></div>
+        <span class="dev-tag stable" style="margin:0 0 0 auto;">Official</span>
+      </div>
+      <p>Automatic moderation with spam detection, link filtering, word blacklists, and raid protection.</p>
+    </div>
+    <div class="dev-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="dev-card-icon" style="background:rgba(245,158,11,0.12);margin:0;">🎵</div>
+        <div><h3 style="margin:0;">Music Player</h3><div style="font-size:12px;color:var(--dev-text-3);">by Community</div></div>
+        <span class="dev-tag beta" style="margin:0 0 0 auto;">Popular</span>
+      </div>
+      <p>Play music in voice channels with queue management, volume control, and playlist support.</p>
+    </div>
+    <div class="dev-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="dev-card-icon" style="background:rgba(34,197,94,0.12);margin:0;">📊</div>
+        <div><h3 style="margin:0;">Server Stats</h3><div style="font-size:12px;color:var(--dev-text-3);">by NexusTeam</div></div>
+        <span class="dev-tag stable" style="margin:0 0 0 auto;">Official</span>
+      </div>
+      <p>Real-time server analytics dashboard with member growth, message activity, and engagement metrics.</p>
+    </div>
+    <div class="dev-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="dev-card-icon" style="background:rgba(168,85,247,0.12);margin:0;">🎮</div>
+        <div><h3 style="margin:0;">Game Integration</h3><div style="font-size:12px;color:var(--dev-text-3);">by Community</div></div>
+        <span class="dev-tag new" style="margin:0 0 0 auto;">New</span>
+      </div>
+      <p>Show what game you're playing, track stats, and create game-specific channels automatically.</p>
+    </div>
+    <div class="dev-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="dev-card-icon" style="background:rgba(14,165,233,0.12);margin:0;">🎫</div>
+        <div><h3 style="margin:0;">Ticket System</h3><div style="font-size:12px;color:var(--dev-text-3);">by Community</div></div>
+        <span class="dev-tag stable" style="margin:0 0 0 auto;">Popular</span>
+      </div>
+      <p>Support ticket system with categories, assignment, priority levels, and transcript logging.</p>
+    </div>
+    <div class="dev-card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <div class="dev-card-icon" style="background:rgba(236,72,153,0.12);margin:0;">🎁</div>
+        <div><h3 style="margin:0;">Giveaway Bot</h3><div style="font-size:12px;color:var(--dev-text-3);">by Community</div></div>
+        <span class="dev-tag new" style="margin:0 0 0 auto;">New</span>
+      </div>
+      <p>Host giveaways with reaction entry, timed draws, role requirements, and winner announcements.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="dev-footer">
+  <div class="dev-footer-links">
+    <a href="index.html">Nexus Chat App</a>
+    <a href="#docs">Documentation</a>
+    <a href="#sdk">API Reference</a>
+    <a href="#plugins">Plugins</a>
+    <a href="#streaming">Streaming</a>
+  </div>
+  <p>Nexus Chat Developer Platform &copy; 2024. SDK is proprietary — build integrations, not forks.</p>
+</footer>
+
+<script>
+// Tab switching for API reference
+function switchDevTab(btn, tabId) {
+  document.querySelectorAll('.dev-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  const allTabs = ['core','commands','bots','streaming-ref','events','ui'];
+  allTabs.forEach(id => {
+    const el = document.getElementById('tab-' + id);
+    if (el) el.style.display = id === tabId ? 'block' : 'none';
+  });
+}
+
+// Copy code
+function copyCode(btn) {
+  const pre = btn.closest('.dev-code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
+  });
+}
+
+// Streaming demo
+let isStreaming = false;
+let streamMediaStream = null;
+let streamMicMuted = false;
+let streamQuality = 'HD';
+const qualities = ['SD', 'HD', 'FHD', 'Source'];
+let qualityIdx = 1;
+
+async function toggleStream() {
+  if (isStreaming) {
+    stopStream();
+    return;
+  }
+
+  try {
+    streamMediaStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { width: 1920, height: 1080, frameRate: 60 },
+      audio: true
+    });
+
+    const video = document.getElementById('streamVideo');
+    video.srcObject = streamMediaStream;
+    video.style.display = 'block';
+    document.getElementById('streamPlaceholder').style.display = 'none';
+    document.getElementById('startStreamBtn').textContent = '⏹️';
+    document.getElementById('startStreamBtn').style.background = 'rgba(239,68,68,0.2)';
+    document.getElementById('startStreamBtn').style.color = '#ef4444';
+    isStreaming = true;
+
+    // Simulate viewers
+    let viewers = 0;
+    const viewerInterval = setInterval(() => {
+      if (!isStreaming) { clearInterval(viewerInterval); return; }
+      viewers = Math.min(viewers + Math.floor(Math.random() * 3), 12);
+      document.getElementById('viewerCount').textContent = `${viewers} viewer${viewers !== 1 ? 's' : ''}`;
+    }, 3000);
+
+    // Handle stream ending
+    streamMediaStream.getVideoTracks()[0].onended = () => {
+      stopStream();
+    };
+  } catch (err) {
+    console.log('Stream cancelled or not supported');
+  }
+}
+
+function stopStream() {
+  if (streamMediaStream) {
+    streamMediaStream.getTracks().forEach(track => track.stop());
+    streamMediaStream = null;
+  }
+  const video = document.getElementById('streamVideo');
+  video.srcObject = null;
+  video.style.display = 'none';
+  document.getElementById('streamPlaceholder').style.display = 'block';
+  document.getElementById('startStreamBtn').textContent = '🖥️';
+  document.getElementById('startStreamBtn').style.background = '';
+  document.getElementById('startStreamBtn').style.color = '';
+  document.getElementById('viewerCount').textContent = '0 viewers';
+  isStreaming = false;
+}
+
+function toggleStreamMic() {
+  streamMicMuted = !streamMicMuted;
+  document.getElementById('streamMicBtn').textContent = streamMicMuted ? '🔇' : '🎤';
+  document.getElementById('streamMicBtn').style.color = streamMicMuted ? '#ef4444' : '';
+}
+
+function toggleStreamCam() {
+  document.getElementById('streamCamBtn').style.color =
+    document.getElementById('streamCamBtn').style.color === 'rgb(14, 165, 233)' ? '' : '#0ea5e9';
+}
+
+function cycleStreamQuality() {
+  qualityIdx = (qualityIdx + 1) % qualities.length;
+  document.getElementById('qualityBtn').textContent = qualities[qualityIdx];
+}
+
+// Smooth scroll for nav links
+document.querySelectorAll('.dev-nav-link').forEach(link => {
+  link.addEventListener('click', function(e) {
+    document.querySelectorAll('.dev-nav-link').forEach(l => l.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

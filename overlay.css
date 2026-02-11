@@ -1,0 +1,677 @@
+/* ============================================
+   NEXUS CHAT - Game Overlay Stylesheet
+   Transparent overlay for in-game chat
+   ============================================ */
+
+:root {
+  --overlay-bg: rgba(11, 14, 20, 0.92);
+  --overlay-bg-light: rgba(19, 23, 32, 0.95);
+  --overlay-border: rgba(14, 165, 233, 0.25);
+  --overlay-accent: #0ea5e9;
+  --overlay-accent-glow: rgba(14, 165, 233, 0.3);
+  --overlay-text: #e8ecf4;
+  --overlay-text-muted: #8b95a8;
+  --overlay-text-dim: #5c6578;
+  --overlay-success: #06d6a0;
+  --overlay-radius: 12px;
+  --overlay-transition: 0.2s ease;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: var(--overlay-text);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* === Overlay Container === */
+.overlay-container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.overlay-container.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* === Overlay Panel (main chat window) === */
+.overlay-panel {
+  width: 420px;
+  max-height: 70vh;
+  background: var(--overlay-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: var(--overlay-radius);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 30px var(--overlay-accent-glow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.25s ease;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.overlay-container.visible .overlay-panel {
+  transform: scale(1) translateY(0);
+}
+
+/* === Overlay Header === */
+.overlay-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 10px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.overlay-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0ea5e9, #06d6a0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.overlay-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--overlay-text);
+  flex: 1;
+}
+
+.overlay-channel-name {
+  font-size: 11px;
+  color: var(--overlay-accent);
+  font-weight: 600;
+}
+
+.overlay-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.overlay-header-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: var(--overlay-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--overlay-transition), color var(--overlay-transition);
+}
+
+.overlay-header-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--overlay-text);
+}
+
+.overlay-header-btn.close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* === Channel Tabs === */
+.overlay-tabs {
+  display: flex;
+  padding: 0 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.overlay-tabs::-webkit-scrollbar { display: none; }
+
+.overlay-tab {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--overlay-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color var(--overlay-transition), border-color var(--overlay-transition);
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.overlay-tab:hover {
+  color: var(--overlay-text);
+}
+
+.overlay-tab.active {
+  color: var(--overlay-accent);
+  border-bottom-color: var(--overlay-accent);
+}
+
+.overlay-tab .tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* === Messages Area === */
+.overlay-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  max-height: 400px;
+}
+
+.overlay-messages::-webkit-scrollbar { width: 4px; }
+.overlay-messages::-webkit-scrollbar-track { background: transparent; }
+.overlay-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* === Message Item === */
+.overlay-msg {
+  display: flex;
+  padding: 4px 14px;
+  gap: 8px;
+  transition: background 0.1s ease;
+  animation: overlayMsgIn 0.2s ease;
+}
+
+.overlay-msg:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.overlay-msg.grouped {
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+@keyframes overlayMsgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.overlay-msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.overlay-msg-avatar.placeholder {
+  width: 28px;
+  visibility: hidden;
+}
+
+.overlay-msg-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.overlay-msg-header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 1px;
+}
+
+.overlay-msg-author {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.overlay-msg-time {
+  font-size: 10px;
+  color: var(--overlay-text-dim);
+}
+
+.overlay-msg-body {
+  font-size: 13px;
+  color: var(--overlay-text);
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.overlay-msg-body .mention {
+  background: rgba(14, 165, 233, 0.2);
+  color: var(--overlay-accent);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.overlay-msg-body strong {
+  font-weight: 700;
+}
+
+.overlay-msg-body code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+}
+
+/* === Input Area === */
+.overlay-input-area {
+  padding: 8px 12px 12px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.overlay-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(17, 22, 34, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px;
+  transition: border-color var(--overlay-transition);
+}
+
+.overlay-input-wrapper:focus-within {
+  border-color: var(--overlay-accent);
+  box-shadow: 0 0 0 2px var(--overlay-accent-glow);
+}
+
+.overlay-input {
+  flex: 1;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--overlay-text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.overlay-input::placeholder {
+  color: var(--overlay-text-dim);
+}
+
+.overlay-input-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: var(--overlay-text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  transition: color var(--overlay-transition), background var(--overlay-transition);
+  flex-shrink: 0;
+}
+
+.overlay-input-btn:hover {
+  color: var(--overlay-text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.overlay-send-btn {
+  color: var(--overlay-accent);
+}
+
+.overlay-send-btn:hover {
+  background: rgba(14, 165, 233, 0.15);
+}
+
+/* === Voice Status Bar === */
+.overlay-voice-bar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(6, 214, 160, 0.08);
+  border-bottom: 1px solid rgba(6, 214, 160, 0.15);
+  flex-shrink: 0;
+}
+
+.overlay-voice-bar.visible {
+  display: flex;
+}
+
+.overlay-voice-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--overlay-success);
+  animation: voicePulse 2s infinite;
+}
+
+@keyframes voicePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.4); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(6, 214, 160, 0); }
+}
+
+.overlay-voice-info {
+  flex: 1;
+  font-size: 11px;
+}
+
+.overlay-voice-status {
+  color: var(--overlay-success);
+  font-weight: 700;
+}
+
+.overlay-voice-channel {
+  color: var(--overlay-text-muted);
+  font-size: 10px;
+}
+
+.overlay-voice-users {
+  display: flex;
+  gap: -4px;
+}
+
+.overlay-voice-user-pip {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  margin-left: -4px;
+  border: 2px solid var(--overlay-bg);
+}
+
+.overlay-voice-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: var(--overlay-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--overlay-transition);
+}
+
+.overlay-voice-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--overlay-text);
+}
+
+.overlay-voice-btn.disconnect {
+  color: #ef4444;
+}
+
+.overlay-voice-btn.disconnect:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* === Notification Toast (mini mode) === */
+.overlay-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.overlay-toast {
+  background: var(--overlay-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px var(--overlay-accent-glow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 4.7s forwards;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(40px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(40px) scale(0.95); }
+}
+
+.overlay-toast-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.overlay-toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.overlay-toast-author {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.overlay-toast-channel {
+  font-size: 10px;
+  color: var(--overlay-text-dim);
+}
+
+.overlay-toast-body {
+  font-size: 12px;
+  color: var(--overlay-text-muted);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === Hotkey Hint === */
+.overlay-hotkey-hint {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--overlay-bg);
+  border: 1px solid var(--overlay-border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--overlay-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.overlay-hotkey-hint.visible {
+  opacity: 1;
+}
+
+.hotkey-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--overlay-text);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* === Compact Mode (sidebar style) === */
+.overlay-container.compact {
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 20px;
+  background: transparent;
+}
+
+.overlay-container.compact .overlay-panel {
+  width: 360px;
+  max-height: 60vh;
+}
+
+/* === Friends/DM Quick List === */
+.overlay-friends-list {
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.overlay-friends-list.visible {
+  display: flex;
+}
+
+.overlay-friend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--overlay-transition);
+}
+
+.overlay-friend-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.overlay-friend-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.overlay-friend-status {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--overlay-bg);
+}
+
+.overlay-friend-status.online { background: #22c55e; }
+.overlay-friend-status.idle { background: #f59e0b; }
+.overlay-friend-status.dnd { background: #ef4444; }
+.overlay-friend-status.offline { background: #5c6578; }
+
+.overlay-friend-name {
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.overlay-friend-game {
+  font-size: 10px;
+  color: var(--overlay-text-dim);
+}
+
+/* === Scrollbar for overlay === */
+.overlay-messages::-webkit-scrollbar { width: 4px; }
+.overlay-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+/* === Empty state === */
+.overlay-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--overlay-text-dim);
+  text-align: center;
+  flex: 1;
+}
+
+.overlay-empty-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.overlay-empty-text {
+  font-size: 13px;
+}

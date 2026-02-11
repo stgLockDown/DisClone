@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Chat Overlay</title>
+  <link rel="stylesheet" href="overlay.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<!-- Hotkey Hint (shown briefly on toggle) -->
+<div class="overlay-hotkey-hint" id="hotkeyHint">
+  <span>Nexus Overlay</span>
+  <span class="hotkey-badge">Shift + `</span>
+  <span>to toggle</span>
+</div>
+
+<!-- Notification Toasts (shown when overlay is hidden) -->
+<div class="overlay-toast-container" id="toastContainer"></div>
+
+<!-- Main Overlay Panel -->
+<div class="overlay-container" id="overlayContainer">
+  <div class="overlay-panel">
+
+    <!-- Header -->
+    <div class="overlay-header">
+      <div class="overlay-logo">N</div>
+      <div>
+        <div class="overlay-title">Nexus Chat</div>
+        <div class="overlay-channel-name" id="overlayChannelName"># general</div>
+      </div>
+      <div class="overlay-header-actions">
+        <button class="overlay-header-btn" id="compactToggle" title="Toggle compact mode">📐</button>
+        <button class="overlay-header-btn" id="pinBtn" title="Pin overlay">📌</button>
+        <button class="overlay-header-btn close" id="closeBtn" title="Close overlay (Shift+`)">✕</button>
+      </div>
+    </div>
+
+    <!-- Voice Status Bar -->
+    <div class="overlay-voice-bar" id="voiceBar">
+      <div class="overlay-voice-indicator"></div>
+      <div class="overlay-voice-info">
+        <div class="overlay-voice-status">Voice Connected</div>
+        <div class="overlay-voice-channel" id="voiceChannelLabel">General Voice</div>
+      </div>
+      <div class="overlay-voice-users" id="voiceUsers">
+        <div class="overlay-voice-user-pip" style="background:#f87171;">AR</div>
+        <div class="overlay-voice-user-pip" style="background:#38bdf8;">JL</div>
+      </div>
+      <button class="overlay-voice-btn" title="Mute" id="voiceMuteBtn">🎤</button>
+      <button class="overlay-voice-btn" title="Deafen" id="voiceDeafenBtn">🎧</button>
+      <button class="overlay-voice-btn disconnect" title="Disconnect" id="voiceDisconnectBtn">📞</button>
+    </div>
+
+    <!-- Channel Tabs -->
+    <div class="overlay-tabs" id="overlayTabs">
+      <button class="overlay-tab active" data-tab="chat">💬 Chat</button>
+      <button class="overlay-tab" data-tab="friends">👥 Friends</button>
+      <button class="overlay-tab" data-tab="dms">📩 DMs <span class="tab-badge">2</span></button>
+    </div>
+
+    <!-- Chat Messages -->
+    <div class="overlay-messages" id="overlayMessages">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Friends List (hidden by default) -->
+    <div class="overlay-friends-list" id="friendsList">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Input Area -->
+    <div class="overlay-input-area" id="overlayInputArea">
+      <div class="overlay-input-wrapper">
+        <input type="text" class="overlay-input" id="overlayInput" placeholder="Message #general" autocomplete="off">
+        <button class="overlay-input-btn" title="Emoji">😊</button>
+        <button class="overlay-input-btn overlay-send-btn" id="overlaySendBtn" title="Send">➤</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="overlay.js"></script>
+</body>
+</html>

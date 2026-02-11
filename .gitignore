@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Database files (don't commit local databases)
+*.db
+*.db-shm
+*.db-wal
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+server.log
+npm-debug.log*
+
+# Build outputs
+dist/
+win-unpacked/
+*.exe
+*.dmg
+*.AppImage
+outputs/
+
+# Development artifacts
+fix_*.py
+summarized_conversations/
+.generated_images/
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+todo.md
+*.tmp
+.cache/
