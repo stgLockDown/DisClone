@@ -2,6 +2,24 @@
 
 A full-featured real-time chat platform with Discord-like features, built with Express, Socket.IO, and SQLite/PostgreSQL.
 
+## ✨ Latest Updates
+
+### 🔐 Authentication System
+- **Sign-up first experience** - New users must create an account before accessing the app
+- **Stay signed in** - Optional persistent login across browser sessions
+- **Session management** - Secure token-based authentication with JWT
+- **Auto-login** - Returning users with "stay signed in" enabled are automatically logged in
+
+### 🎯 Standard Hub System
+Every server now includes **5 built-in hub categories**:
+- **🎮 Gaming Hub** - Gaming discussions, LFG, game nights, voice channels
+- **🎵 Music Vibes** - Music chat, track sharing, listening parties
+- **⚡ Dev Hub** - Developer discussions, code help, project showcase
+- **🎨 Art Hub** - Art community, artwork showcase, feedback
+- **📺 Streamer Hub** - Streaming chat, schedules, watch parties, stream rooms
+
+All hubs are **collapsible** and come with pre-configured text and voice channels.
+
 ## Features
 
 - **Real-time messaging** — Instant message delivery, typing indicators, presence system
@@ -218,6 +236,37 @@ After first startup, the database seeds with demo users:
 | jordan@nexus.chat | jordanl#9012 | password123 |
 | sam@nexus.chat | samt#3456 | password123 |
 | riley@nexus.chat | rileyk#7890 | password123 |
+| drew@nexus.chat | drewp#6789 | password123 |
+| avery@nexus.chat | averyb#0123 | password123 |
+| taylor@nexus.chat | taylorf#4567 | password123 |
+| casey@nexus.chat | caseym#2345 | password123 |
+
+**Note:** On first launch, you'll see the sign-up screen. You can either:
+- Create a new account
+- Or use one of the demo accounts above to log in
+
+## 🚀 Live Demo
+
+The app is currently running at: **https://nexuschat-0035i.app.super.myninja.ai**
+
+Try it out with any of the demo accounts above!
+
+## 📝 Deployment Notes
+
+### Database
+- The app automatically detects and uses PostgreSQL if `DATABASE_URL` is set
+- Falls back to SQLite for local development
+- All servers automatically get the 5 standard hubs on creation
+
+### Authentication
+- First-time users must sign up before accessing the app
+- "Stay signed in" checkbox controls session persistence
+- JWT tokens stored in localStorage (persistent) or sessionStorage (session-only)
+
+### Standard Hubs
+- Every server includes 5 pre-configured hub categories
+- Hubs are added automatically when creating new servers
+- Existing servers can be migrated using `node add-hubs-migration.js`
 
 ## License
 
