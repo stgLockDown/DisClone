@@ -356,15 +356,18 @@ function createChannelItem(ch) {
 
 function createVoiceChannelItem(ch) {
   const wrapper = document.createElement('div');
+  wrapper.className = 'voice-channel-wrapper';
 
   const item = document.createElement('div');
-  item.className = 'channel-item';
+  const isInThisChannel = isVoiceConnected && voiceChannel === ch.id;
+  item.className = 'channel-item' + (isInThisChannel ? ' voice-active' : '');
   item.dataset.channelId = ch.id;
   item.onclick = () => joinVoiceChannel(ch);
 
   item.innerHTML = `
-    <span class="channel-icon">${ch.icon}</span>
+    <span class="channel-icon">${ch.icon || '🔊'}</span>
     <span class="channel-name">${ch.name}</span>
+    ${isInThisChannel ? '<span class="voice-connected-badge">Connected</span>' : ''}
   `;
   wrapper.appendChild(item);
 
@@ -372,14 +375,19 @@ function createVoiceChannelItem(ch) {
     const voiceUsersDiv = document.createElement('div');
     voiceUsersDiv.className = 'voice-users';
     ch.voiceUsers.forEach(uid => {
-      const u = users[uid];
+      // uid could be a string ID or an object
+      const userId = typeof uid === 'object' ? uid.id : uid;
+      const u = users[userId] || (typeof uid === 'object' ? uid : null);
       if (!u) return;
+      const isSelf = userId === currentUser.id;
+      const isMuted = isSelf ? isMicMuted : false;
       const vu = document.createElement('div');
-      vu.className = 'voice-user';
+      vu.className = 'voice-user' + (isSelf ? ' self' : '');
+      vu.dataset.userId = userId;
       vu.innerHTML = `
-        <div class="voice-user-avatar" style="background:${u.color}">${u.initials}</div>
-        <span>${u.name}</span>
-        <div class="voice-user-icons">🎤</div>
+        <div class="voice-user-avatar" style="background:${u.color || '#0ea5e9'}">${u.initials || u.displayName?.[0] || '?'}</div>
+        <span>${u.name || u.displayName || u.display_name || 'User'}</span>
+        <div class="voice-user-icons">${isMuted ? '🔇' : '🎤'}</div>
       `;
       voiceUsersDiv.appendChild(vu);
     });
@@ -392,11 +400,15 @@ function createVoiceChannelItem(ch) {
 // ============ CHANNEL SWITCHING ============
 
 function switchChannel(channelId) {
+  // Don't re-switch to the same channel
+  if (activeChannel === channelId) return;
+
   activeChannel = channelId;
 
-  // Update active state in sidebar
+  // Update active state in sidebar — only one text channel active at a time
   document.querySelectorAll('.channel-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.channelId === channelId);
+    const isThis = el.dataset.channelId === channelId;
+    el.classList.toggle('active', isThis);
   });
 
   // Find channel data
@@ -767,70 +779,162 @@ function toggleMembers() {
 
 // ============ VOICE CHANNELS ============
 
-function joinVoiceChannel(ch) {
+async function joinVoiceChannel(ch) {
+  // Toggle off if already in this channel
   if (isVoiceConnected && voiceChannel === ch.id) {
     disconnectVoice();
     return;
   }
 
+  // Leave previous voice channel if in one
+  if (isVoiceConnected && voiceChannel) {
+    await VoiceEngine.leaveChannel();
+    const oldCh = findChannel(voiceChannel);
+    if (oldCh && oldCh.voiceUsers) {
+      oldCh.voiceUsers = oldCh.voiceUsers.filter(id => id !== currentUser.id);
+    }
+  }
+
+  // Join new voice channel via WebRTC
+  const success = await VoiceEngine.joinChannel(ch.id, currentUser.id);
+  if (!success) {
+    showToast('Could not access microphone. Check your browser permissions.', 'error');
+    return;
+  }
+
   isVoiceConnected = true;
   voiceChannel = ch.id;
+  isMicMuted = false;
+  isDeafened = false;
 
   const bar = document.getElementById('voiceBar');
   bar.classList.add('visible');
   document.getElementById('voiceChannelName').textContent = ch.name;
 
-  // Add self to voice users
+  // Update mute/deafen buttons
+  const muteBtn = document.getElementById('vcMute');
+  const deafenBtn = document.getElementById('vcDeafen');
+  if (muteBtn) { muteBtn.textContent = '🎤'; muteBtn.style.color = ''; }
+  if (deafenBtn) { deafenBtn.textContent = '🎧'; deafenBtn.style.color = ''; }
+
+  // Add self to voice users for UI
   if (!ch.voiceUsers) ch.voiceUsers = [];
-  if (!ch.voiceUsers.includes('u-self')) {
-    ch.voiceUsers.push('u-self');
+  if (!ch.voiceUsers.find(u => u === currentUser.id || u.id === currentUser.id)) {
+    ch.voiceUsers.push(currentUser.id);
   }
 
+  // Set up speaking detection
+  VoiceEngine.createSpeakingDetector((speaking) => {
+    const voiceUsers = document.querySelectorAll('.voice-user');
+    voiceUsers.forEach(el => {
+      if (el.dataset.userId === currentUser.id) {
+        el.classList.toggle('speaking', speaking);
+      }
+    });
+  });
+
+  // Highlight the voice channel in sidebar
+  document.querySelectorAll('.channel-item').forEach(el => {
+    el.classList.toggle('voice-active', el.dataset.channelId === ch.id);
+  });
+
   renderChannelList(servers[activeServer]);
+  showToast(`Connected to ${ch.name}`, 'success');
 }
 
-function disconnectVoice() {
+async function disconnectVoice() {
   if (voiceChannel) {
     const ch = findChannel(voiceChannel);
     if (ch && ch.voiceUsers) {
-      ch.voiceUsers = ch.voiceUsers.filter(id => id !== 'u-self');
+      ch.voiceUsers = ch.voiceUsers.filter(id => id !== currentUser.id && id?.id !== currentUser.id);
     }
   }
 
+  await VoiceEngine.leaveChannel();
+
   isVoiceConnected = false;
   voiceChannel = null;
+  isMicMuted = false;
+  isDeafened = false;
   document.getElementById('voiceBar').classList.remove('visible');
-  renderChannelList(servers[activeServer]);
+
+  document.querySelectorAll('.channel-item').forEach(el => {
+    el.classList.remove('voice-active');
+  });
+
+  if (activeServer && servers[activeServer]) {
+    renderChannelList(servers[activeServer]);
+  }
+  showToast('Disconnected from voice', 'info');
 }
 
 function toggleVoiceMute() {
+  const muted = VoiceEngine.toggleMute();
+  isMicMuted = muted;
   const btn = document.getElementById('vcMute');
-  isMicMuted = !isMicMuted;
-  btn.textContent = isMicMuted ? '🔇' : '🎤';
-  btn.style.color = isMicMuted ? 'var(--nexus-danger)' : '';
+  btn.textContent = muted ? '🔇' : '🎤';
+  btn.style.color = muted ? 'var(--nexus-danger)' : '';
 }
 
 function toggleVoiceDeafen() {
-  const btn = document.getElementById('vcDeafen');
-  isDeafened = !isDeafened;
-  btn.textContent = isDeafened ? '🔇' : '🎧';
-  btn.style.color = isDeafened ? 'var(--nexus-danger)' : '';
+  const deafened = VoiceEngine.toggleDeafen();
+  isDeafened = deafened;
+  isMicMuted = VoiceEngine.isMuted;
+  const deafBtn = document.getElementById('vcDeafen');
+  const muteBtn = document.getElementById('vcMute');
+  deafBtn.textContent = deafened ? '🔇' : '🎧';
+  deafBtn.style.color = deafened ? 'var(--nexus-danger)' : '';
+  muteBtn.textContent = isMicMuted ? '🔇' : '🎤';
+  muteBtn.style.color = isMicMuted ? 'var(--nexus-danger)' : '';
 }
 
 // ============ USER PANEL CONTROLS ============
 
 function toggleMic() {
-  isMicMuted = !isMicMuted;
+  if (VoiceEngine.isConnected) {
+    const muted = VoiceEngine.toggleMute();
+    isMicMuted = muted;
+  } else {
+    isMicMuted = !isMicMuted;
+  }
   const btn = document.getElementById('micBtn');
   btn.classList.toggle('muted', isMicMuted);
   btn.textContent = isMicMuted ? '🔇' : '🎤';
+  // Sync voice bar button
+  const vcMute = document.getElementById('vcMute');
+  if (vcMute) {
+    vcMute.textContent = isMicMuted ? '🔇' : '🎤';
+    vcMute.style.color = isMicMuted ? 'var(--nexus-danger)' : '';
+  }
 }
 
 function toggleDeafen() {
-  isDeafened = !isDeafened;
+  if (VoiceEngine.isConnected) {
+    const deafened = VoiceEngine.toggleDeafen();
+    isDeafened = deafened;
+    isMicMuted = VoiceEngine.isMuted;
+  } else {
+    isDeafened = !isDeafened;
+  }
   const btn = document.getElementById('deafenBtn');
   btn.classList.toggle('muted', isDeafened);
   btn.textContent = isDeafened ? '🔇' : '🎧';
+  // Sync voice bar buttons
+  const vcDeafen = document.getElementById('vcDeafen');
+  const vcMute = document.getElementById('vcMute');
+  if (vcDeafen) {
+    vcDeafen.textContent = isDeafened ? '🔇' : '🎧';
+    vcDeafen.style.color = isDeafened ? 'var(--nexus-danger)' : '';
+  }
+  if (vcMute) {
+    vcMute.textContent = isMicMuted ? '🔇' : '🎤';
+    vcMute.style.color = isMicMuted ? 'var(--nexus-danger)' : '';
+  }
+  const micBtn = document.getElementById('micBtn');
+  if (micBtn) {
+    micBtn.classList.toggle('muted', isMicMuted);
+    micBtn.textContent = isMicMuted ? '🔇' : '🎤';
+  }
 }
 
 // ============ TOOLTIPS ============

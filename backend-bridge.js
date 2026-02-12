@@ -431,10 +431,43 @@ const NexusBackend = (() => {
     // Voice events
     NexusAPI.on('voice:user_joined', (data) => {
       updateVoiceChannelUI(data.channelId, data.user, 'join');
+      // If we're in this voice channel, initiate WebRTC with the new peer
+      if (typeof VoiceEngine !== 'undefined' && VoiceEngine.isConnected && VoiceEngine.channelId === data.channelId) {
+        VoiceEngine.handlePeerJoined(data.user.id);
+      }
     });
 
     NexusAPI.on('voice:user_left', (data) => {
       updateVoiceChannelUI(data.channelId, data.userId, 'leave');
+      // Clean up WebRTC peer connection
+      if (typeof VoiceEngine !== 'undefined' && VoiceEngine.isConnected) {
+        VoiceEngine.handlePeerLeft(data.userId);
+      }
+    });
+
+    // WebRTC signaling events
+    NexusAPI.on('voice:offer', (data) => {
+      if (typeof VoiceEngine !== 'undefined' && VoiceEngine.isConnected) {
+        VoiceEngine.handleOffer(data.fromUserId, data.offer);
+      }
+    });
+
+    NexusAPI.on('voice:answer', (data) => {
+      if (typeof VoiceEngine !== 'undefined' && VoiceEngine.isConnected) {
+        VoiceEngine.handleAnswer(data.fromUserId, data.answer);
+      }
+    });
+
+    NexusAPI.on('voice:ice-candidate', (data) => {
+      if (typeof VoiceEngine !== 'undefined' && VoiceEngine.isConnected) {
+        VoiceEngine.handleIceCandidate(data.fromUserId, data.candidate);
+      }
+    });
+
+    NexusAPI.on('voice:peers', (data) => {
+      if (typeof VoiceEngine !== 'undefined' && VoiceEngine.isConnected) {
+        VoiceEngine.handlePeersList(data.peers);
+      }
     });
 
     // Friend events

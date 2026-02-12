@@ -333,6 +333,12 @@ const NexusAPI = (() => {
     socket.on('voice:user_left', (data) => emit('voice:user_left', data));
     socket.on('voice:state_update', (data) => emit('voice:state_update', data));
 
+    // WebRTC signaling events
+    socket.on('voice:offer', (data) => emit('voice:offer', data));
+    socket.on('voice:answer', (data) => emit('voice:answer', data));
+    socket.on('voice:ice-candidate', (data) => emit('voice:ice-candidate', data));
+    socket.on('voice:peers', (data) => emit('voice:peers', data));
+
     // Friend events
     socket.on('friend:request_received', (data) => emit('friend:request_received', data));
     socket.on('friend:request_accepted', (data) => emit('friend:request_accepted', data));
@@ -387,6 +393,23 @@ const NexusAPI = (() => {
 
   function setVoiceDeafen(channelId, deafened) {
     if (socket) socket.emit('voice:deafen', { channelId, deafened });
+  }
+
+  // WebRTC signaling
+  function sendVoiceOffer(targetUserId, offer, channelId) {
+    if (socket) socket.emit('voice:offer', { targetUserId, offer, channelId });
+  }
+
+  function sendVoiceAnswer(targetUserId, answer, channelId) {
+    if (socket) socket.emit('voice:answer', { targetUserId, answer, channelId });
+  }
+
+  function sendIceCandidate(targetUserId, candidate, channelId) {
+    if (socket) socket.emit('voice:ice-candidate', { targetUserId, candidate, channelId });
+  }
+
+  function getVoicePeers(channelId) {
+    if (socket) socket.emit('voice:get-peers', { channelId });
   }
 
   // ============ EVENT SYSTEM ============
@@ -498,6 +521,12 @@ const NexusAPI = (() => {
     leaveVoice,
     setVoiceMute,
     setVoiceDeafen,
+
+    // WebRTC signaling
+    sendVoiceOffer,
+    sendVoiceAnswer,
+    sendIceCandidate,
+    getVoicePeers,
 
     // Events
     on,

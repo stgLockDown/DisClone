@@ -199,6 +199,51 @@ function initializeWebSocket(io) {
       }
     });
 
+    // ============ WEBRTC SIGNALING ============
+
+    socket.on('voice:offer', (data) => {
+      const { targetUserId, offer, channelId } = data;
+      io.to(`user:${targetUserId}`).emit('voice:offer', {
+        fromUserId: user.id,
+        offer,
+        channelId
+      });
+    });
+
+    socket.on('voice:answer', (data) => {
+      const { targetUserId, answer, channelId } = data;
+      io.to(`user:${targetUserId}`).emit('voice:answer', {
+        fromUserId: user.id,
+        answer,
+        channelId
+      });
+    });
+
+    socket.on('voice:ice-candidate', (data) => {
+      const { targetUserId, candidate, channelId } = data;
+      io.to(`user:${targetUserId}`).emit('voice:ice-candidate', {
+        fromUserId: user.id,
+        candidate,
+        channelId
+      });
+    });
+
+    // Request list of users currently in a voice channel
+    socket.on('voice:get-peers', async (data) => {
+      const { channelId } = data;
+      try {
+        const peers = await dbAll(`
+          SELECT vs.user_id, u.display_name, u.username, u.avatar, u.color, u.initials, vs.muted, vs.deafened
+          FROM voice_state vs
+          JOIN users u ON u.id = vs.user_id
+          WHERE vs.channel_id = ?
+        `, channelId);
+        socket.emit('voice:peers', { channelId, peers });
+      } catch (err) {
+        console.error('[WS] Get peers error:', err.message);
+      }
+    });
+
     // ============ PRESENCE ============
 
     socket.on('presence:update', async (data) => {
