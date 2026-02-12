@@ -5,45 +5,12 @@
 
 // ============ DATA ============
 
-const overlayUsers = {
-  'u-self': { name: 'NexusUser', initials: 'N', color: '#0ea5e9' },
-  'u-alex': { name: 'Alex Rivera', initials: 'AR', color: '#f87171' },
-  'u-maya': { name: 'Maya Chen', initials: 'MC', color: '#a78bfa' },
-  'u-jordan': { name: 'Jordan Lee', initials: 'JL', color: '#38bdf8' },
-  'u-sam': { name: 'Sam Torres', initials: 'ST', color: '#06d6a0' },
-  'u-riley': { name: 'Riley Kim', initials: 'RK', color: '#f59e0b' },
-  'u-drew': { name: 'Drew Park', initials: 'DP', color: '#8b5cf6' },
-  'u-bot': { name: 'Nexus Bot', initials: '🤖', color: '#06d6a0' },
-  'u-avery': { name: 'Avery Quinn', initials: 'AQ', color: '#14b8a6' },
-  'u-taylor': { name: 'Taylor S.', initials: 'TS', color: '#e879f9' },
-  'u-casey': { name: 'Casey Morgan', initials: 'CM', color: '#ec4899' }
-};
+// Overlay users and friends populated from backend
+const overlayUsers = {};
+const friends = [];
 
-const friends = [
-  { id: 'u-alex', status: 'online', game: 'Playing Valorant' },
-  { id: 'u-maya', status: 'online', game: null },
-  { id: 'u-jordan', status: 'idle', game: 'Playing Minecraft' },
-  { id: 'u-drew', status: 'online', game: 'In VS Code' },
-  { id: 'u-riley', status: 'online', game: null },
-  { id: 'u-sam', status: 'dnd', game: 'Playing Elden Ring' },
-  { id: 'u-avery', status: 'idle', game: null },
-  { id: 'u-taylor', status: 'online', game: null },
-  { id: 'u-casey', status: 'offline', game: null }
-];
-
-// Seed messages for the overlay
-let overlayMessages = [
-  { id: 1, userId: 'u-alex', content: 'Anyone up for ranked later tonight?', timestamp: Date.now() - 3600000 },
-  { id: 2, userId: 'u-jordan', content: 'I\'m down! What time?', timestamp: Date.now() - 3500000 },
-  { id: 3, userId: 'u-alex', content: 'Thinking around 9 PM EST', timestamp: Date.now() - 3400000 },
-  { id: 4, userId: 'u-maya', content: 'Count me in 🎮', timestamp: Date.now() - 3000000 },
-  { id: 5, userId: 'u-drew', content: 'Just pushed a big update to the project. Check it out when you get a chance!', timestamp: Date.now() - 2400000 },
-  { id: 6, userId: 'u-riley', content: 'Nice work Drew! The new UI looks clean 🔥', timestamp: Date.now() - 2200000 },
-  { id: 7, userId: 'u-bot', content: '🎮 **Game Night** starts in 2 hours! Join the voice channel to participate.', timestamp: Date.now() - 1800000 },
-  { id: 8, userId: 'u-sam', content: 'BRB grabbing food, save me a spot', timestamp: Date.now() - 900000 },
-  { id: 9, userId: 'u-taylor', content: 'This new map is insane, has anyone tried it yet?', timestamp: Date.now() - 600000 },
-  { id: 10, userId: 'u-jordan', content: 'Yeah it\'s so good! The verticality is next level', timestamp: Date.now() - 300000 }
-];
+// Messages loaded from backend
+let overlayMessages = [];
 
 let msgIdCounter = 100;
 let currentTab = 'chat';
@@ -325,50 +292,7 @@ function sendMessage() {
   }
 
   // Simulate a reply after a short delay
-  simulateReply(content);
-}
-
-function simulateReply(content) {
-  const lower = content.toLowerCase();
-  const replyUsers = ['u-alex', 'u-maya', 'u-jordan', 'u-drew', 'u-riley'];
-  const randomUser = replyUsers[Math.floor(Math.random() * replyUsers.length)];
-
-  let reply = null;
-
-  if (lower.includes('gg') || lower.includes('nice')) {
-    const responses = ['GG! 🎮', 'Well played!', 'That was insane!', 'Let\'s go!! 🔥', 'Clutch play!'];
-    reply = responses[Math.floor(Math.random() * responses.length)];
-  } else if (lower.includes('help') || lower.includes('push')) {
-    const responses = ['On my way!', 'Coming to help!', 'I got you 👍', 'Rotating now', 'Hold on, almost there!'];
-    reply = responses[Math.floor(Math.random() * responses.length)];
-  } else if (lower.includes('?')) {
-    const responses = ['Good question!', 'I think so', 'Not sure, let me check', 'Yeah definitely', 'Hmm let me think about that'];
-    reply = responses[Math.floor(Math.random() * responses.length)];
-  } else if (Math.random() > 0.5) {
-    const responses = [
-      'Facts 💯', 'Lol 😂', 'True', 'Agreed!', 'Nice one!',
-      'For real though', 'Haha yeah', '👍', 'Same here',
-      'Let\'s gooo', 'Big W', 'No cap'
-    ];
-    reply = responses[Math.floor(Math.random() * responses.length)];
-  }
-
-  if (reply) {
-    setTimeout(() => {
-      const replyMsg = {
-        id: ++msgIdCounter,
-        userId: randomUser,
-        content: reply,
-        timestamp: Date.now()
-      };
-      overlayMessages.push(replyMsg);
-      renderMessages();
-
-      if (!isOverlayVisible) {
-        showToast(replyMsg);
-      }
-    }, 1500 + Math.random() * 3000);
-  }
+  // Replies come from real users via backend
 }
 
 // ============ FRIENDS LIST ============
@@ -448,52 +372,4 @@ function showToast(msg) {
   }
 }
 
-// ============ SIMULATE INCOMING MESSAGES ============
-
-// Periodically simulate incoming messages when overlay is not visible
-setInterval(() => {
-  if (Math.random() > 0.7) {
-    const userIds = ['u-alex', 'u-maya', 'u-jordan', 'u-drew', 'u-riley', 'u-sam', 'u-taylor'];
-    const randomUserId = userIds[Math.floor(Math.random() * userIds.length)];
-    const messages = [
-      'Anyone want to queue up?',
-      'That last round was crazy',
-      'BRB 5 min',
-      'Check out this play I just made',
-      'We need better comms next round',
-      'GG everyone!',
-      'Let\'s switch to a different map',
-      'Who\'s calling strats?',
-      'Nice clutch! 🔥',
-      'I\'m lagging so bad right now',
-      'One more game then I gotta go',
-      'This team comp is actually cracked',
-      'Enemy team is rotating, heads up',
-      'I got top frag let\'s go 😎',
-      'Alright I\'m warmed up now'
-    ];
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-
-    const msg = {
-      id: ++msgIdCounter,
-      userId: randomUserId,
-      content: randomMsg,
-      timestamp: Date.now()
-    };
-
-    overlayMessages.push(msg);
-
-    // Keep message history manageable
-    if (overlayMessages.length > 50) {
-      overlayMessages = overlayMessages.slice(-50);
-    }
-
-    if (currentTab === 'chat') {
-      renderMessages();
-    }
-
-    if (!isOverlayVisible) {
-      showToast(msg);
-    }
-  }
-}, 20000);
+// Incoming messages handled via backend WebSocket — no simulation

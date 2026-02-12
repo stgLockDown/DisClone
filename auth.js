@@ -230,9 +230,9 @@
       overlay.style.display = 'none';
     }, 500);
 
-    // Make sure the app initializes properly
-    if (typeof switchServer === 'function') {
-      switchServer('nexus-hq');
+    // Show the welcome landing if no servers, otherwise show first server
+    if (typeof showWelcomeLanding === 'function') {
+      showWelcomeLanding();
     }
   }
 
@@ -318,9 +318,9 @@
     showApp();
     sessionStorage.setItem('nexus_session_active', 'true');
 
-    // Initialize app
-    if (typeof switchServer === 'function') {
-      switchServer('nexus-hq');
+    // Show welcome landing — it will check for servers and route accordingly
+    if (typeof showWelcomeLanding === 'function') {
+      showWelcomeLanding();
     }
   };
 

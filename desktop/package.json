@@ -1,6 +1,6 @@
 {
   "name": "nexus-chat-desktop",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "description": "Nexus Chat — Desktop client for the real-time communication platform",
   "main": "main.js",
   "author": {

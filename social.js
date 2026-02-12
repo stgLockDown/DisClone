@@ -763,22 +763,11 @@ function saveProfile() {
 // ============ FRIENDS SYSTEM ============
 
 const NexusFriends = (() => {
-  // Friend data stored in currentUser context + simulated friends
+  // Friend data loaded from backend
   let friendsData = {
-    friends: [
-      { userId: 'u-alex', since: '2024-01-15' },
-      { userId: 'u-maya', since: '2024-02-20' },
-      { userId: 'u-riley', since: '2024-03-10' },
-      { userId: 'u-drew', since: '2024-03-25' },
-      { userId: 'u-taylor', since: '2024-04-01' }
-    ],
-    incoming: [
-      { userId: 'u-jordan', timestamp: new Date(Date.now() - 3600000).toISOString() },
-      { userId: 'u-avery', timestamp: new Date(Date.now() - 7200000).toISOString() }
-    ],
-    outgoing: [
-      { userId: 'u-sam', timestamp: new Date(Date.now() - 1800000).toISOString() }
-    ],
+    friends: [],
+    incoming: [],
+    outgoing: [],
     blocked: []
   };
 
@@ -1131,7 +1120,8 @@ function renderBlockedItem(blocked) {
 
 function getQuickAddSuggestions() {
   const friendIds = NexusFriends.getFriends().map(f => f.userId);
-  const suggestions = Object.values(users).filter(u => u.id !== 'u-self' && u.id !== 'u-bot' && !friendIds.includes(u.id));
+  const selfId = currentUser.id || currentUser._authId || 'u-self';
+  const suggestions = Object.values(users).filter(u => u.id !== selfId && !u.isBot && !friendIds.includes(u.id));
 
   return suggestions.slice(0, 4).map(u => `
     <div style="background:var(--bg-primary);border-radius:8px;padding:12px;flex:1;min-width:140px;text-align:center;">

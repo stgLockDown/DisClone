@@ -6,137 +6,25 @@
 // ============ DATA MODELS ============
 
 const currentUser = {
-  id: 'u-self',
-  name: 'NexusUser',
-  tag: 'nexususer#7842',
+  id: null,
+  name: '',
+  tag: '',
   avatar: null,
   color: '#0ea5e9',
-  initials: 'N',
+  initials: '',
   status: 'online',
-  about: 'Building cool things with Nexus Chat!',
-  roles: [
-    { name: 'Admin', color: '#f87171' },
-    { name: 'Nexus Pro', color: '#a78bfa' }
-  ]
+  about: '',
+  roles: []
 };
 
-const users = {
-  'u-self': currentUser,
-  'u-alex': { id: 'u-alex', name: 'Alex Rivera', tag: 'alexr#1234', initials: 'AR', color: '#f87171', status: 'online', roleClass: 'role-admin', about: 'Server admin. DMs open for questions!', roles: [{ name: 'Admin', color: '#f87171' }, { name: 'Moderator', color: '#a78bfa' }] },
-  'u-maya': { id: 'u-maya', name: 'Maya Chen', tag: 'mayac#5678', initials: 'MC', color: '#a78bfa', status: 'online', roleClass: 'role-mod', about: 'Moderator | Cat lover 🐱', roles: [{ name: 'Moderator', color: '#a78bfa' }] },
-  'u-jordan': { id: 'u-jordan', name: 'Jordan Lee', tag: 'jordanl#9012', initials: 'JL', color: '#38bdf8', status: 'idle', roleClass: 'role-member', about: 'Just vibing ✌️', roles: [{ name: 'Member', color: '#38bdf8' }] },
-  'u-sam': { id: 'u-sam', name: 'Sam Torres', tag: 'samt#3456', initials: 'ST', color: '#06d6a0', status: 'dnd', roleClass: 'role-member', about: 'Do not disturb — deep work mode.', roles: [{ name: 'Member', color: '#06d6a0' }] },
-  'u-riley': { id: 'u-riley', name: 'Riley Kim', tag: 'rileyk#7890', initials: 'RK', color: '#f59e0b', status: 'online', roleClass: 'role-member', about: 'Designer & pixel pusher 🎨', roles: [{ name: 'Member', color: '#f59e0b' }, { name: 'Artist', color: '#ec4899' }] },
-  'u-casey': { id: 'u-casey', name: 'Casey Morgan', tag: 'caseym#2345', initials: 'CM', color: '#ec4899', status: 'offline', roleClass: 'role-member', about: 'Offline — catch me later!', roles: [{ name: 'Member', color: '#ec4899' }] },
-  'u-bot': { id: 'u-bot', name: 'Nexus Bot', tag: 'nexusbot#0001', initials: '🤖', color: '#06d6a0', status: 'online', roleClass: 'role-bot', isBot: true, about: 'Your friendly Nexus assistant.', roles: [{ name: 'Bot', color: '#06d6a0' }] },
-  'u-drew': { id: 'u-drew', name: 'Drew Park', tag: 'drewp#4567', initials: 'DP', color: '#8b5cf6', status: 'online', roleClass: 'role-member', about: 'Full-stack dev | Coffee addict ☕', roles: [{ name: 'Member', color: '#8b5cf6' }, { name: 'Developer', color: '#0ea5e9' }] },
-  'u-avery': { id: 'u-avery', name: 'Avery Quinn', tag: 'averyq#6789', initials: 'AQ', color: '#14b8a6', status: 'idle', roleClass: 'role-member', about: 'Music producer 🎹', roles: [{ name: 'Member', color: '#14b8a6' }] },
-  'u-taylor': { id: 'u-taylor', name: 'Taylor Swift... jk', tag: 'tswift#0000', initials: 'TS', color: '#e879f9', status: 'online', roleClass: 'role-member', about: 'Not actually Taylor Swift 😂', roles: [{ name: 'Member', color: '#e879f9' }] }
-};
+const users = {};
 
 // Server data
+// Server data — populated dynamically from backend
 const servers = {
   'home': {
     name: 'Direct Messages',
-    channels: {
-      'dm': [
-        { id: 'dm-alex', name: 'Alex Rivera', type: 'dm', icon: '💬' },
-        { id: 'dm-maya', name: 'Maya Chen', type: 'dm', icon: '💬' },
-        { id: 'dm-jordan', name: 'Jordan Lee', type: 'dm', icon: '💬' }
-      ]
-    }
-  },
-  'nexus-hq': {
-    name: 'Nexus HQ',
-    channels: {
-      'Information': [
-        { id: 'ch-welcome', name: 'welcome', type: 'text', icon: '#', topic: 'Welcome to Nexus HQ! Read the rules and have fun.' },
-        { id: 'ch-rules', name: 'rules', type: 'text', icon: '📋', topic: 'Server rules — please read before posting.' },
-        { id: 'ch-announcements', name: 'announcements', type: 'text', icon: '📢', topic: 'Important announcements from the admin team.', badge: 2 }
-      ],
-      'General': [
-        { id: 'ch-general', name: 'general', type: 'text', icon: '#', topic: 'Welcome to the general channel — say hi!' },
-        { id: 'ch-memes', name: 'memes', type: 'text', icon: '#', topic: 'Share your best memes here 😂' },
-        { id: 'ch-introductions', name: 'introductions', type: 'text', icon: '#', topic: 'New here? Introduce yourself!' }
-      ],
-      'Voice Channels': [
-        { id: 'vc-general', name: 'General Voice', type: 'voice', icon: '🔊', voiceUsers: ['u-jordan', 'u-riley'] },
-        { id: 'vc-music', name: 'Music Lounge', type: 'voice', icon: '🔊', voiceUsers: [] },
-        { id: 'vc-gaming', name: 'Gaming Room', type: 'voice', icon: '🔊', voiceUsers: ['u-drew'] }
-      ],
-      'Community': [
-        { id: 'ch-art', name: 'art-showcase', type: 'text', icon: '#', topic: 'Share your artwork!' },
-        { id: 'ch-music-share', name: 'music-share', type: 'text', icon: '#', topic: 'Drop your favorite tracks 🎵' },
-        { id: 'ch-dev', name: 'dev-talk', type: 'text', icon: '#', topic: 'Programming discussions and help.' }
-      ]
-    }
-  },
-  'gaming': {
-    name: 'Gaming Lounge',
-    channels: {
-      'General': [
-        { id: 'g-general', name: 'general', type: 'text', icon: '#', topic: 'General gaming chat' },
-        { id: 'g-lfg', name: 'looking-for-group', type: 'text', icon: '#', topic: 'Find teammates here!' }
-      ],
-      'Games': [
-        { id: 'g-fps', name: 'fps-games', type: 'text', icon: '#', topic: 'FPS game discussions' },
-        { id: 'g-rpg', name: 'rpg-games', type: 'text', icon: '#', topic: 'RPG game discussions' },
-        { id: 'g-indie', name: 'indie-games', type: 'text', icon: '#', topic: 'Indie game recommendations' }
-      ],
-      'Voice': [
-        { id: 'g-vc1', name: 'Game Room 1', type: 'voice', icon: '🔊', voiceUsers: [] },
-        { id: 'g-vc2', name: 'Game Room 2', type: 'voice', icon: '🔊', voiceUsers: [] }
-      ]
-    }
-  },
-  'music': {
-    name: 'Music Vibes',
-    channels: {
-      'General': [
-        { id: 'm-general', name: 'general', type: 'text', icon: '#', topic: 'Music chat' },
-        { id: 'm-recs', name: 'recommendations', type: 'text', icon: '#', topic: 'Share music recommendations' }
-      ],
-      'Genres': [
-        { id: 'm-electronic', name: 'electronic', type: 'text', icon: '#', topic: 'Electronic music' },
-        { id: 'm-hiphop', name: 'hip-hop', type: 'text', icon: '#', topic: 'Hip-hop and rap' },
-        { id: 'm-rock', name: 'rock', type: 'text', icon: '#', topic: 'Rock and alternative' }
-      ],
-      'Listening': [
-        { id: 'm-vc', name: 'Listening Party', type: 'voice', icon: '🔊', voiceUsers: ['u-avery'] }
-      ]
-    }
-  },
-  'devhub': {
-    name: 'Dev Hub',
-    channels: {
-      'General': [
-        { id: 'd-general', name: 'general', type: 'text', icon: '#', topic: 'Developer chat' },
-        { id: 'd-help', name: 'help', type: 'text', icon: '#', topic: 'Ask for coding help' }
-      ],
-      'Languages': [
-        { id: 'd-js', name: 'javascript', type: 'text', icon: '#', topic: 'JavaScript discussions' },
-        { id: 'd-python', name: 'python', type: 'text', icon: '#', topic: 'Python discussions' },
-        { id: 'd-rust', name: 'rust', type: 'text', icon: '#', topic: 'Rust discussions' }
-      ],
-      'Projects': [
-        { id: 'd-showcase', name: 'project-showcase', type: 'text', icon: '#', topic: 'Show off your projects!' },
-        { id: 'd-collab', name: 'collaboration', type: 'text', icon: '#', topic: 'Find collaborators' }
-      ]
-    }
-  },
-  'art': {
-    name: 'Art Studio',
-    channels: {
-      'General': [
-        { id: 'a-general', name: 'general', type: 'text', icon: '#', topic: 'Art community chat' },
-        { id: 'a-feedback', name: 'feedback', type: 'text', icon: '#', topic: 'Get feedback on your work' }
-      ],
-      'Showcase': [
-        { id: 'a-digital', name: 'digital-art', type: 'text', icon: '#', topic: 'Digital art showcase' },
-        { id: 'a-traditional', name: 'traditional-art', type: 'text', icon: '#', topic: 'Traditional art showcase' },
-        { id: 'a-photo', name: 'photography', type: 'text', icon: '#', topic: 'Photography showcase' }
-      ]
-    }
+    channels: { 'dm': [] }
   }
 };
 
@@ -170,51 +58,12 @@ function formatFullTimestamp(date) {
 let msgIdCounter = 0;
 function genMsgId() { return 'msg-' + (++msgIdCounter); }
 
-// Seed messages for general channel
-channelMessages['ch-general'] = [
-  { id: genMsgId(), userId: 'u-bot', content: 'Welcome to **#general**! This is the beginning of this channel. Feel free to chat about anything. 🎉', timestamp: generateTimestamp(48), isSystem: false, reactions: [{ emoji: '🎉', count: 5, active: true }, { emoji: '👋', count: 3, active: false }] },
-  { id: genMsgId(), userId: 'u-alex', content: 'Hey everyone! Glad to see the server coming together. Let me know if you have any questions about the community.', timestamp: generateTimestamp(47), reactions: [] },
-  { id: genMsgId(), userId: 'u-maya', content: 'This place looks amazing! Love the setup @Alex Rivera 💜', timestamp: generateTimestamp(46), reactions: [{ emoji: '💜', count: 2, active: false }] },
-  { id: genMsgId(), userId: 'u-jordan', content: 'Just joined! Excited to be here. Anyone up for some gaming later?', timestamp: generateTimestamp(24), reactions: [{ emoji: '🎮', count: 4, active: true }] },
-  { id: genMsgId(), userId: 'u-riley', content: 'I just finished a new design project — might share it in #art-showcase later!', timestamp: generateTimestamp(23), reactions: [{ emoji: '🔥', count: 3, active: false }, { emoji: '👀', count: 2, active: true }] },
-  { id: genMsgId(), userId: 'u-drew', content: 'Been working on a new open-source project. It\'s a real-time collaboration tool built with WebSockets. Would love some feedback!', timestamp: generateTimestamp(12), reactions: [{ emoji: '⭐', count: 6, active: true }] },
-  { id: genMsgId(), userId: 'u-sam', content: 'That sounds awesome Drew! Is it on GitHub?', timestamp: generateTimestamp(11.5), reactions: [] },
-  { id: genMsgId(), userId: 'u-drew', content: 'Yeah! I\'ll drop the link in #dev-talk once I clean up the README. Still a work in progress but the core features are solid.', timestamp: generateTimestamp(11), reactions: [{ emoji: '👍', count: 2, active: false }] },
-  { id: genMsgId(), userId: 'u-avery', content: 'Anyone listening to any good albums lately? I need new music recommendations 🎵', timestamp: generateTimestamp(6), reactions: [{ emoji: '🎵', count: 1, active: false }] },
-  { id: genMsgId(), userId: 'u-taylor', content: 'I\'ve been on a huge synthwave kick lately. Check out the #music-share channel, I posted some tracks there!', timestamp: generateTimestamp(5.5), reactions: [{ emoji: '🎹', count: 2, active: false }] },
-  { id: genMsgId(), userId: 'u-maya', content: 'Quick reminder: we\'re doing a community game night this Friday at 8 PM EST! Check #announcements for details 🎲', timestamp: generateTimestamp(3), reactions: [{ emoji: '🎲', count: 7, active: true }, { emoji: '🙌', count: 4, active: false }] },
-  { id: genMsgId(), userId: 'u-alex', content: 'Great reminder Maya! Everyone\'s welcome. We\'ll be in the Gaming Room voice channel.', timestamp: generateTimestamp(2.8), reactions: [{ emoji: '✅', count: 3, active: false }] },
-  { id: genMsgId(), userId: 'u-jordan', content: 'Count me in! 🎮', timestamp: generateTimestamp(2.5), reactions: [] },
-  { id: genMsgId(), userId: 'u-riley', content: 'I\'ll be there! Also, here\'s a sneak peek of what I\'ve been working on:', timestamp: generateTimestamp(1), reactions: [{ emoji: '😍', count: 5, active: true }, { emoji: '🎨', count: 3, active: false }] },
-  { id: genMsgId(), userId: 'u-bot', content: '📊 **Server Stats Update**\n\n• Members: 847 (+23 this week)\n• Messages today: 1,204\n• Most active channel: #general\n• Voice hours this week: 142h', timestamp: generateTimestamp(0.5), reactions: [{ emoji: '📈', count: 4, active: false }] },
-];
-
-channelMessages['ch-welcome'] = [
-  { id: genMsgId(), userId: 'u-bot', content: '# Welcome to Nexus HQ! 🌟\n\nWe\'re glad you\'re here. Here\'s how to get started:\n\n1. Read the rules in #rules\n2. Introduce yourself in #introductions\n3. Pick your roles in #roles\n4. Start chatting!\n\nHave fun and be respectful! 💙', timestamp: generateTimestamp(168), reactions: [{ emoji: '👋', count: 12, active: false }, { emoji: '💙', count: 8, active: true }] },
-];
-
-channelMessages['ch-announcements'] = [
-  { id: genMsgId(), userId: 'u-alex', content: '📢 **Community Game Night — This Friday!**\n\nJoin us this Friday at 8 PM EST for our weekly game night! We\'ll be playing party games in the Gaming Room voice channel.\n\nEveryone\'s welcome, no skill level required. Just bring good vibes! 🎮🎲', timestamp: generateTimestamp(24), reactions: [{ emoji: '🎮', count: 15, active: true }, { emoji: '🎉', count: 9, active: false }] },
-  { id: genMsgId(), userId: 'u-alex', content: '🎨 **Art Contest Announcement!**\n\nWe\'re hosting our first community art contest! Theme: "Neon Dreams"\n\n• Submit entries in #art-showcase\n• Deadline: End of the month\n• Winner gets a custom role + Nexus Pro for 3 months!\n\nGet creative! ✨', timestamp: generateTimestamp(6), reactions: [{ emoji: '🎨', count: 11, active: false }, { emoji: '🔥', count: 7, active: true }] },
-];
-
-channelMessages['ch-dev'] = [
-  { id: genMsgId(), userId: 'u-drew', content: 'Has anyone tried the new Bun runtime? The benchmarks look insane compared to Node.', timestamp: generateTimestamp(8), reactions: [{ emoji: '🤔', count: 3, active: false }] },
-  { id: genMsgId(), userId: 'u-sam', content: 'I\'ve been using it for a side project. It\'s fast but some npm packages still have compatibility issues.', timestamp: generateTimestamp(7.5), reactions: [] },
-  { id: genMsgId(), userId: 'u-drew', content: 'Good to know. I might stick with Node for production but use Bun for tooling and scripts.', timestamp: generateTimestamp(7), reactions: [{ emoji: '👍', count: 2, active: false }] },
-  { id: genMsgId(), userId: 'u-bot', content: '💡 **Tip of the Day**\n\nUse `console.table()` instead of `console.log()` when debugging arrays and objects. It formats the output as a nice table in your browser console!', timestamp: generateTimestamp(4), reactions: [{ emoji: '💡', count: 6, active: true }, { emoji: '🙏', count: 3, active: false }] },
-];
-
-channelMessages['ch-memes'] = [
-  { id: genMsgId(), userId: 'u-jordan', content: 'When the code works on the first try: 😱😱😱', timestamp: generateTimestamp(10), reactions: [{ emoji: '😂', count: 8, active: true }, { emoji: '💀', count: 5, active: false }] },
-  { id: genMsgId(), userId: 'u-taylor', content: 'Me explaining to my rubber duck why the bug exists at 3 AM 🦆', timestamp: generateTimestamp(8), reactions: [{ emoji: '🦆', count: 6, active: false }, { emoji: '😂', count: 4, active: true }] },
-  { id: genMsgId(), userId: 'u-riley', content: '"It works on my machine" — famous last words', timestamp: generateTimestamp(5), reactions: [{ emoji: '💀', count: 7, active: true }, { emoji: '😭', count: 3, active: false }] },
-];
+// No seed messages — all messages loaded from backend
 
 // ============ STATE ============
 
-let activeServer = 'nexus-hq';
-let activeChannel = 'ch-general';
+let activeServer = null;
+let activeChannel = null;
 let replyingTo = null;
 let isMicMuted = false;
 let isDeafened = false;
@@ -237,10 +86,155 @@ document.addEventListener('DOMContentLoaded', () => {
   initPluginSystem();
 });
 
+// ============ WELCOME LANDING ============
+
+function showWelcomeLanding() {
+  // Check if user has any servers (besides 'home')
+  const userServers = Object.keys(servers).filter(k => k !== 'home');
+  
+  if (userServers.length > 0) {
+    // User has servers — switch to the first one
+    switchServer(userServers[0]);
+    return;
+  }
+
+  // No servers — show the welcome landing page
+  activeServer = 'home';
+  activeChannel = null;
+
+  // Update sidebar
+  document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
+  const homeEl = document.querySelector('[data-server="home"]');
+  if (homeEl) homeEl.classList.add('active');
+
+  document.getElementById('sidebarTitle').textContent = 'Welcome';
+  
+  // Clear channel list and show welcome content
+  const channelList = document.getElementById('channelList');
+  if (channelList) channelList.innerHTML = '';
+
+  // Show welcome landing in the main chat area
+  const chatMessages = document.getElementById('chatMessages');
+  const chatHeader = document.querySelector('.chat-header');
+  const messageInput = document.querySelector('.message-input-container');
+  
+  if (chatHeader) chatHeader.style.display = 'none';
+  if (messageInput) messageInput.style.display = 'none';
+
+  if (chatMessages) {
+    chatMessages.innerHTML = `
+      <div class="welcome-landing">
+        <div class="welcome-hero">
+          <div class="welcome-logo">
+            <div class="welcome-logo-icon">N</div>
+            <div class="welcome-logo-glow"></div>
+          </div>
+          <h1 class="welcome-title">Welcome to Nexus Chat!</h1>
+          <p class="welcome-subtitle">Your space for real-time communication. Get started by creating a server or adding friends.</p>
+        </div>
+
+        <div class="welcome-actions">
+          <div class="welcome-card" onclick="openModal('createServerModal')">
+            <div class="welcome-card-icon">🚀</div>
+            <h3>Create a Server</h3>
+            <p>Start your own community. Invite friends, create channels, and build something awesome.</p>
+            <button class="welcome-btn welcome-btn-primary">Create Server</button>
+          </div>
+
+          <div class="welcome-card" onclick="if(typeof switchServer==='function'){activeServer='home';document.querySelector('[data-server=\\'home\\']')?.click();}">
+            <div class="welcome-card-icon">👥</div>
+            <h3>Add Friends</h3>
+            <p>Connect with people you know. Send friend requests and start direct messaging.</p>
+            <button class="welcome-btn welcome-btn-secondary">Find Friends</button>
+          </div>
+
+          <div class="welcome-card" onclick="if(typeof openModal==='function') openModal('joinServerModal')">
+            <div class="welcome-card-icon">🔗</div>
+            <h3>Join a Server</h3>
+            <p>Have an invite link? Join an existing community and start chatting right away.</p>
+            <button class="welcome-btn welcome-btn-secondary">Join Server</button>
+          </div>
+        </div>
+
+        <div class="welcome-tips">
+          <h3>💡 Quick Tips</h3>
+          <div class="welcome-tips-grid">
+            <div class="welcome-tip">
+              <span class="welcome-tip-icon">⌨️</span>
+              <span>Press <kbd>Ctrl+K</kbd> to quick search</span>
+            </div>
+            <div class="welcome-tip">
+              <span class="welcome-tip-icon">🎤</span>
+              <span>Join voice channels to talk with friends</span>
+            </div>
+            <div class="welcome-tip">
+              <span class="welcome-tip-icon">🎨</span>
+              <span>Customize your profile in Settings</span>
+            </div>
+            <div class="welcome-tip">
+              <span class="welcome-tip-icon">📱</span>
+              <span>Use <kbd>Ctrl+Shift+N</kbd> to toggle the app</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// Render server icons in the sidebar from the servers object
+function renderServerList() {
+  const nav = document.getElementById('serverNav');
+  if (!nav) return;
+
+  // Remove existing server items (keep home, separator, add button, etc.)
+  nav.querySelectorAll('.server-item').forEach(el => el.remove());
+
+  // Find the first separator to insert servers after it
+  const separators = nav.querySelectorAll('.server-separator');
+  const insertBefore = separators.length > 1 ? separators[1] : separators[0];
+
+  for (const [serverId, server] of Object.entries(servers)) {
+    if (serverId === 'home') continue;
+
+    const icon = document.createElement('div');
+    icon.className = 'server-icon server-item';
+    icon.dataset.tooltip = server.name;
+    icon.dataset.server = serverId;
+    
+    if (server.iconEmoji) {
+      icon.textContent = server.iconEmoji;
+    } else if (server.icon) {
+      icon.style.backgroundImage = `url(${server.icon})`;
+      icon.style.backgroundSize = 'cover';
+    } else {
+      // Generate initials from server name
+      const initials = server.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+      icon.textContent = initials;
+    }
+
+    icon.onclick = () => switchServer(serverId);
+
+    if (insertBefore) {
+      nav.insertBefore(icon, insertBefore);
+    } else {
+      nav.appendChild(icon);
+    }
+  }
+
+  setupTooltips();
+}
+
 // ============ SERVER SWITCHING ============
 
 function switchServer(serverId) {
   activeServer = serverId;
+
+  // Restore chat UI (may have been hidden by welcome landing)
+  const chatHeader = document.querySelector('.chat-header');
+  const messageInput = document.querySelector('.message-input-container');
+  if (chatHeader) chatHeader.style.display = '';
+  if (messageInput) messageInput.style.display = '';
 
   // Update server nav active state
   document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
@@ -248,7 +242,11 @@ function switchServer(serverId) {
   if (serverEl) serverEl.classList.add('active');
 
   const server = servers[serverId];
-  if (!server) return;
+  if (!server) {
+    // Server not found — show welcome landing
+    showWelcomeLanding();
+    return;
+  }
 
   document.getElementById('sidebarTitle').textContent = server.name;
   renderChannelList(server);
@@ -639,82 +637,7 @@ function sendMessage() {
   // Process bot prefix commands (e.g., !greet)
   processBotCommands(content, msg);
 
-  // Simulate bot response for certain keywords
-  simulateBotResponse(content);
-  // Simulate typing
-  simulateTyping();
-}
-
-function simulateBotResponse(content) {
-  const lower = content.toLowerCase();
-  let response = null;
-
-  if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
-    response = { userId: 'u-bot', content: 'Hey there! 👋 Welcome to the chat. How can I help you today?' };
-  } else if (lower.includes('help')) {
-    response = { userId: 'u-bot', content: '📖 **Need help?** Here are some things you can do:\n\n• Type a message and press Enter to send\n• Right-click messages for more options\n• Click on usernames to see profiles\n• Use the emoji picker to add reactions\n• Join voice channels by clicking on them' };
-  } else if (lower.includes('ping')) {
-    response = { userId: 'u-bot', content: '🏓 Pong! Latency: `24ms`' };
-  } else if (lower.includes('stats') || lower.includes('server info')) {
-    response = { userId: 'u-bot', content: '📊 **Server Stats**\n\n• Members: 847\n• Online: 234\n• Channels: 15\n• Roles: 8\n• Created: January 2024' };
-  }
-
-  if (response) {
-    setTimeout(() => {
-      if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
-      channelMessages[activeChannel].push({
-        id: genMsgId(),
-        userId: response.userId,
-        content: response.content,
-        timestamp: new Date(),
-        reactions: []
-      });
-      renderMessages();
-    }, 1200);
-  }
-}
-
-function simulateTyping() {
-  // Random chance of someone "typing"
-  if (Math.random() > 0.5) {
-    const typingUsers = ['u-alex', 'u-maya', 'u-drew', 'u-riley'];
-    const randomUser = users[typingUsers[Math.floor(Math.random() * typingUsers.length)]];
-    const indicator = document.getElementById('typingIndicator');
-    const typingText = document.getElementById('typingText');
-    typingText.textContent = `${randomUser.name} is typing...`;
-    indicator.style.visibility = 'visible';
-
-    setTimeout(() => {
-      indicator.style.visibility = 'hidden';
-
-      // Sometimes they actually send a message
-      if (Math.random() > 0.5) {
-        const responses = [
-          'That\'s a great point! 👍',
-          'Haha nice one 😂',
-          'Totally agree with that',
-          'Interesting perspective!',
-          'I was just thinking the same thing',
-          'Can\'t wait for game night! 🎮',
-          'Love this community ❤️',
-          'Anyone want to hop in voice?',
-          'Just saw something cool I want to share later',
-          'BRB, grabbing coffee ☕'
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-        if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
-        channelMessages[activeChannel].push({
-          id: genMsgId(),
-          userId: randomUser.id,
-          content: randomResponse,
-          timestamp: new Date(),
-          reactions: []
-        });
-        renderMessages();
-      }
-    }, 2000 + Math.random() * 3000);
-  }
+  // Messages are sent via backend — no local simulation
 }
 
 // ============ REACTIONS ============
@@ -1475,32 +1398,7 @@ window.addEventListener('click', (e) => {
   }
 });
 
-// ============ PERIODIC ACTIVITY SIMULATION ============
-
-// Simulate random status changes
-setInterval(() => {
-  const userIds = Object.keys(users).filter(id => id !== 'u-self' && id !== 'u-bot');
-  const randomUserId = userIds[Math.floor(Math.random() * userIds.length)];
-  const statuses = ['online', 'idle', 'dnd', 'offline'];
-  const currentStatus = users[randomUserId].status;
-  let newStatus;
-
-  // Weighted status changes
-  if (currentStatus === 'online') {
-    newStatus = Math.random() > 0.7 ? 'idle' : 'online';
-  } else if (currentStatus === 'idle') {
-    newStatus = Math.random() > 0.5 ? 'online' : (Math.random() > 0.5 ? 'offline' : 'idle');
-  } else if (currentStatus === 'offline') {
-    newStatus = Math.random() > 0.7 ? 'online' : 'offline';
-  } else {
-    newStatus = Math.random() > 0.8 ? 'online' : 'dnd';
-  }
-
-  if (newStatus !== currentStatus) {
-    users[randomUserId].status = newStatus;
-    renderMembers();
-  }
-}, 15000);
+// Status updates come from backend via WebSocket — no local simulation
 
 // ============ STREAMING SYSTEM ============
 
@@ -1940,10 +1838,11 @@ function processSlashCommand(content) {
           if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
           channelMessages[activeChannel].push({
             id: genMsgId(),
-            userId: 'u-bot',
+            userId: currentUser.id || 'system',
             content: result.result,
             timestamp: new Date(),
-            reactions: []
+            reactions: [],
+            isSystem: true
           });
           renderMessages();
         } else if (!result.success) {
@@ -2003,21 +1902,7 @@ servers['twitch-hub'] = {
   }
 };
 
-// Seed some messages for streamer chat
-channelMessages['th-general'] = [
-  { id: genMsgId(), userId: 'u-alex', content: 'Just hit affiliate! 🎉 Thanks to everyone who supported!', timestamp: generateTimestamp(12), reactions: [{ emoji: '🎉', count: 8, active: true }, { emoji: '💜', count: 5, active: false }] },
-  { id: genMsgId(), userId: 'u-riley', content: 'Congrats Alex!! That\'s huge! What\'s your stream schedule looking like?', timestamp: generateTimestamp(11.5), reactions: [] },
-  { id: genMsgId(), userId: 'u-alex', content: 'Thinking Tue/Thu/Sat evenings. Trying to stay consistent!', timestamp: generateTimestamp(11), reactions: [{ emoji: '👍', count: 3, active: false }] },
-  { id: genMsgId(), userId: 'u-drew', content: 'Anyone tried the new OBS update? The virtual camera feature is so much better now.', timestamp: generateTimestamp(6), reactions: [{ emoji: '👀', count: 2, active: false }] },
-  { id: genMsgId(), userId: 'u-maya', content: 'The ProLeague finals are INSANE right now. 45K viewers! Check the live tab 📺', timestamp: generateTimestamp(2), reactions: [{ emoji: '🔥', count: 6, active: true }] },
-  { id: genMsgId(), userId: 'u-bot', content: '📺 **Stream Alert:** NexusGamer just went live playing VALORANT! [Watch now in the Streamer Hub]', timestamp: generateTimestamp(1), reactions: [{ emoji: '📺', count: 4, active: false }] },
-];
-
-channelMessages['th-tips'] = [
-  { id: genMsgId(), userId: 'u-drew', content: '💡 **Tip:** Use a consistent stream schedule and post it in your panels. Viewers are way more likely to come back if they know when you\'re live.', timestamp: generateTimestamp(24), reactions: [{ emoji: '💡', count: 7, active: true }] },
-  { id: genMsgId(), userId: 'u-riley', content: '💡 **Tip:** Don\'t focus on viewer count early on. Focus on having fun and being entertaining. The numbers will come naturally.', timestamp: generateTimestamp(12), reactions: [{ emoji: '❤️', count: 9, active: false }] },
-  { id: genMsgId(), userId: 'u-maya', content: '💡 **Tip:** Network with other small streamers! Raids, co-streams, and community events are the best way to grow.', timestamp: generateTimestamp(6), reactions: [{ emoji: '🤝', count: 5, active: true }] },
-];
+// No seed messages — all messages loaded from backend
 
 function toggleTwitchConnect() {
   const btn = document.getElementById('twitchConnectBtn');
@@ -3108,9 +2993,7 @@ function startWatchParty() {
     isPrivate
   });
 
-  // Add simulated viewers
-  const viewerIds = ['u-alex', 'u-maya', 'u-jordan', 'u-drew', 'u-riley'];
-  viewerIds.forEach(uid => NexusWatchParty.join(party.id, uid));
+  // Viewers join via real-time events from backend
 
   activeWatchParty = party;
   NexusWatchParty.start(party.id);
@@ -3236,31 +3119,7 @@ function sendWPReaction(emoji) {
 }
 
 function simulateWPChat(partyId) {
-  const chatMessages = [
-    'This is so good!', 'LMAO 😂', 'No way!!', 'Let\'s gooo', 'Wow that was insane',
-    'I love this part', 'Chat is moving fast', 'W stream', 'This is fire 🔥',
-    'Can\'t believe that just happened', 'POG', 'Best watch party ever',
-    'Who else is watching from bed? 🛏️', 'The vibes are immaculate', 'CLIP THAT'
-  ];
-  const chatUsers = ['u-alex', 'u-maya', 'u-jordan', 'u-drew', 'u-riley'];
-
-  const interval = setInterval(() => {
-    const party = NexusWatchParty.get(partyId);
-    if (!party || party.status === 'ended' || !activeWatchParty) {
-      clearInterval(interval);
-      return;
-    }
-    const uid = chatUsers[Math.floor(Math.random() * chatUsers.length)];
-    const u = users[uid];
-    const msg = chatMessages[Math.floor(Math.random() * chatMessages.length)];
-    appendWPChatMsg({ userName: u.name, message: msg, color: u.color });
-
-    // Random reactions
-    if (Math.random() > 0.6) {
-      const emojis = ['❤️', '😂', '🔥', '😮', '👏', '💀', '🎉', '👀'];
-      sendWPReaction(emojis[Math.floor(Math.random() * emojis.length)]);
-    }
-  }, 3000 + Math.random() * 4000);
+  // Watch party chat comes from real users via backend — no simulation
 }
 
 // ============ CONSOLE ============

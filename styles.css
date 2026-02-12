@@ -2135,3 +2135,213 @@ img { display: block; max-width: 100%; }
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-popup);
 }
+/* ============ WELCOME LANDING PAGE ============ */
+
+.welcome-landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 40px 20px;
+  overflow-y: auto;
+  animation: welcomeFadeIn 0.5s ease-out;
+}
+
+@keyframes welcomeFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.welcome-hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.welcome-logo {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
+}
+
+.welcome-logo-icon {
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  font-weight: 800;
+  color: white;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-logo-glow {
+  position: absolute;
+  inset: -15px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: welcomePulse 3s ease-in-out infinite;
+}
+
+@keyframes welcomePulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+.welcome-title {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #c7d2fe, #e9d5ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.welcome-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary, #94a3b8);
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.welcome-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  max-width: 800px;
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+.welcome-card {
+  background: var(--bg-secondary, #1e293b);
+  border: 1px solid var(--border-default, rgba(255,255,255,0.06));
+  border-radius: 16px;
+  padding: 28px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.welcome-card:hover {
+  background: var(--bg-tertiary, #253049);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.welcome-card-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+.welcome-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary, #e2e8f0);
+  margin-bottom: 8px;
+}
+
+.welcome-card p {
+  font-size: 13px;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.welcome-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.welcome-btn-primary {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+}
+
+.welcome-btn-primary:hover {
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.welcome-btn-secondary {
+  background: var(--bg-primary, #0f172a);
+  color: var(--text-primary, #e2e8f0);
+  border: 1px solid var(--border-default, rgba(255,255,255,0.1));
+}
+
+.welcome-btn-secondary:hover {
+  background: var(--bg-tertiary, #253049);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.welcome-tips {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+.welcome-tips h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #e2e8f0);
+  margin-bottom: 16px;
+}
+
+.welcome-tips-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.welcome-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.welcome-tip-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.welcome-tip kbd {
+  background: var(--bg-primary, #0f172a);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+  border: 1px solid var(--border-default, rgba(255,255,255,0.1));
+  color: var(--text-primary, #e2e8f0);
+}
+
+@media (max-width: 700px) {
+  .welcome-actions {
+    grid-template-columns: 1fr;
+  }
+  .welcome-tips-grid {
+    grid-template-columns: 1fr;
+  }
+  .welcome-title {
+    font-size: 24px;
+  }
+}

@@ -1249,14 +1249,7 @@ function joinDiscoveredServer(serverId) {
     channels: channelData
   };
 
-  // Add welcome messages
-  const firstChannel = channelData['General']?.[0];
-  if (firstChannel) {
-    channelMessages[firstChannel.id] = [
-      { id: 'sys-' + Date.now(), userId: 'u-bot', content: `Welcome to **${server.name}**! 🎉 You just joined a community of ${formatNumber(server.members)} members.`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), reactions: [] },
-      { id: 'sys-' + (Date.now()+1), userId: 'u-bot', content: `Check out the channels and say hi! Don't forget to read the rules.`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), reactions: [] }
-    ];
-  }
+  // Welcome messages come from backend when joining a server
 
   // Add server icon to nav
   const nav = document.getElementById('serverNav');
