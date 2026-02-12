@@ -5,6 +5,10 @@
   "main": "main.js",
   "author": "Nexus Team",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stgLockDown/DisClone.git"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
@@ -20,6 +24,7 @@
     "appId": "com.nexuschat.desktop",
     "productName": "Nexus Chat",
     "copyright": "Copyright © 2025 Nexus Team",
+    "publish": null,
     "directories": {
       "output": "dist",
       "buildResources": "assets"
