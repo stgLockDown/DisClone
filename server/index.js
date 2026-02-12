@@ -220,9 +220,25 @@ async function start() {
       });
     });
     
-    // Now initialize database (async for PostgreSQL)
+    // Now initialize database (async for PostgreSQL) with retry logic
     process.stdout.write('[Server] Initializing database...\n');
-    await initializeDatabase();
+    const maxRetries = 5;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await initializeDatabase();
+        process.stdout.write('[Server] Database initialized successfully\n');
+        break;
+      } catch (err) {
+        process.stdout.write(`[Server] DB init attempt ${attempt}/${maxRetries} failed: ${err.message}\n`);
+        if (attempt === maxRetries) {
+          process.stdout.write('[Server] FATAL: All database connection attempts failed\n');
+          throw err;
+        }
+        const delay = attempt * 2000; // 2s, 4s, 6s, 8s, 10s
+        process.stdout.write(`[Server] Retrying in ${delay/1000}s...\n`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
     
     process.stdout.write('[Server] Seeding default data...\n');
     await seedDefaultData();

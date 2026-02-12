@@ -12,8 +12,10 @@ async function initializeDatabase() {
     const db = getDB();
     
     // Test connection first
-    const testResult = await db.query('SELECT NOW()');
+    process.stdout.write('[DB] Testing PostgreSQL connection...\n');
+    const testResult = await db.query('SELECT NOW() as now, current_database() as db, current_user as usr');
     process.stdout.write('[DB] PostgreSQL connected at: ' + testResult.rows[0].now + '\n');
+    process.stdout.write('[DB] Database: ' + testResult.rows[0].db + ', User: ' + testResult.rows[0].usr + '\n');
 
     await db.query(`
       CREATE TABLE IF NOT EXISTS users (
