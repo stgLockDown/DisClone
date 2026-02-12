@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Chat — Loading</title>
+  <link rel="stylesheet" href="splash.css">
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="splash-container">
+    <div class="logo-wrapper">
+      <div class="logo-glow"></div>
+      <div class="logo"><span class="logo-text">N</span></div>
+    </div>
+    <h1 class="app-name">Nexus Chat</h1>
+    <p class="app-version">v3.2.0</p>
+    <div class="loading-bar-container"><div class="loading-bar"></div></div>
+    <p class="status" id="status">Connecting to server...</p>
+    <button class="retry-btn" id="retryBtn" onclick="window.electronAPI.retry()">Retry Connection</button>
+  </div>
+  <script>
+    if (window.electronAPI) {
+      window.electronAPI.onStatusUpdate((status, type) => {
+        const el = document.getElementById('status');
+        const btn = document.getElementById('retryBtn');
+        el.textContent = status;
+        el.className = 'status' + (type ? ' ' + type : '');
+        btn.classList.toggle('visible', type === 'error');
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0b0e14; color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; overflow: hidden; -webkit-app-region: drag; user-select: none;
+}
+.splash-container { text-align: center; animation: fadeIn 0.6s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.logo-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 30px; }
+.logo-glow {
+  position: absolute; inset: -20px;
+  background: radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%);
+  border-radius: 50%; animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; } }
+.logo {
+  position: relative; width: 120px; height: 120px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  border-radius: 28px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 32px rgba(99,102,241,0.4); z-index: 1;
+}
+.logo-text { font-size: 52px; font-weight: 800; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.app-name {
+  font-size: 28px; font-weight: 700;
+  background: linear-gradient(135deg, #c7d2fe, #e9d5ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px; letter-spacing: -0.5px;
+}
+.app-version { font-size: 13px; color: #64748b; margin-bottom: 40px; }
+.loading-bar-container {
+  width: 240px; height: 4px; background: rgba(255,255,255,0.08);
+  border-radius: 4px; margin: 0 auto 16px; overflow: hidden;
+}
+.loading-bar {
+  height: 100%; width: 30%;
+  background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
+  background-size: 200% 100%; border-radius: 4px;
+  animation: loading 1.5s ease-in-out infinite;
+}
+@keyframes loading {
+  0% { transform: translateX(-100%); background-position: 0% 0%; }
+  50% { background-position: 100% 0%; }
+  100% { transform: translateX(340%); background-position: 0% 0%; }
+}
+.status { font-size: 13px; color: #94a3b8; min-height: 20px; transition: all 0.3s ease; }
+.status.error { color: #f87171; }
+.status.success { color: #4ade80; }
+.retry-btn {
+  display: none; margin: 16px auto 0; padding: 8px 24px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white; border: none; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  -webkit-app-region: no-drag; transition: all 0.2s ease;
+}
+.retry-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
+.retry-btn.visible { display: inline-block; animation: fadeIn 0.3s ease-out; }
+.bg-grid {
+  position: fixed; inset: 0;
+  background-image: linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+  background-size: 40px 40px; pointer-events: none;
+}
+.bg-orb { position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; opacity: 0.15; }
+.bg-orb-1 { width: 300px; height: 300px; background: #6366f1; top: -100px; right: -50px; animation: float1 8s ease-in-out infinite; }
+.bg-orb-2 { width: 250px; height: 250px; background: #a855f7; bottom: -80px; left: -50px; animation: float2 10s ease-in-out infinite; }
+@keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-30px,30px); } }
+@keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(20px,-20px); } }
