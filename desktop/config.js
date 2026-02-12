@@ -6,10 +6,13 @@ const path = require('path');
 
 const config = {
   // Your Railway production URL
-  RAILWAY_URL: process.env.NEXUS_SERVER_URL || 'https://disclone-production.up.railway.app',
+  RAILWAY_URL: process.env.NEXUS_SERVER_URL || 'https://disclone-production-01f6.up.railway.app',
 
   FALLBACK_URLS: [
-    'https://disclone-production.up.railway.app',
+    'https://disclone-production-01f6.up.railway.app',
+    'https://disclone-production-f42d.up.railway.app',
+    'https://disclone-production-bdbc.up.railway.app',
+    'https://disclone-production-eab6.up.railway.app',
     'http://localhost:8080'
   ],
 
