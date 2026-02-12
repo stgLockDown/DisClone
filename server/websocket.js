@@ -1,8 +1,9 @@
 // ============================================
 // NEXUS CHAT - WebSocket Handler (Socket.IO)
+// Uses unified db.js for PostgreSQL/SQLite support
 // ============================================
 
-const { getDB } = require('./database');
+const { dbGet, dbAll, dbRun } = require('./db');
 const { socketAuth } = require('./middleware/auth');
 const { formatUser } = require('./routes/auth');
 
@@ -15,7 +16,7 @@ function initializeWebSocket(io) {
   // Auth middleware
   io.use(socketAuth);
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     const user = socket.user;
     console.log(`[WS] User connected: ${user.display_name} (${user.id}) - socket ${socket.id}`);
 
@@ -26,22 +27,33 @@ function initializeWebSocket(io) {
     onlineUsers.get(user.id).add(socket.id);
 
     // Update user status to online
-    const db = getDB();
-    db.prepare('UPDATE users SET status = ? WHERE id = ? AND status = ?').run('online', user.id, 'offline');
+    try {
+      await dbRun('UPDATE users SET status = ? WHERE id = ? AND status = ?', 'online', user.id, 'offline');
+    } catch (err) {
+      console.error('[WS] Error updating user status:', err.message);
+    }
 
     // Join user's personal room for DMs and notifications
     socket.join(`user:${user.id}`);
 
     // Auto-join all server rooms the user is a member of
-    const userServers = db.prepare('SELECT server_id FROM server_members WHERE user_id = ?').all(user.id);
-    for (const srv of userServers) {
-      socket.join(`server:${srv.server_id}`);
+    try {
+      const userServers = await dbAll('SELECT server_id FROM server_members WHERE user_id = ?', user.id);
+      for (const srv of userServers) {
+        socket.join(`server:${srv.server_id}`);
+      }
+    } catch (err) {
+      console.error('[WS] Error joining server rooms:', err.message);
     }
 
     // Auto-join DM channel rooms
-    const userDMs = db.prepare('SELECT channel_id FROM dm_participants WHERE user_id = ?').all(user.id);
-    for (const dm of userDMs) {
-      socket.join(`channel:${dm.channel_id}`);
+    try {
+      const userDMs = await dbAll('SELECT channel_id FROM dm_participants WHERE user_id = ?', user.id);
+      for (const dm of userDMs) {
+        socket.join(`channel:${dm.channel_id}`);
+      }
+    } catch (err) {
+      console.error('[WS] Error joining DM rooms:', err.message);
     }
 
     // Broadcast presence update
@@ -51,8 +63,6 @@ function initializeWebSocket(io) {
 
     // New message sent (from REST API, broadcast here)
     socket.on('message:send', (data) => {
-      // The actual message creation happens via REST API
-      // This event is for broadcasting to other clients
       const { channelId, message } = data;
       socket.to(`channel:${channelId}`).emit('message:new', message);
     });
@@ -116,16 +126,15 @@ function initializeWebSocket(io) {
 
     // ============ VOICE STATE ============
 
-    socket.on('voice:join', (data) => {
+    socket.on('voice:join', async (data) => {
       const { channelId } = data;
       try {
-        const db = getDB();
         // Leave any existing voice channel
-        db.prepare('DELETE FROM voice_state WHERE user_id = ?').run(user.id);
+        await dbRun('DELETE FROM voice_state WHERE user_id = ?', user.id);
         // Join new voice channel
-        db.prepare('INSERT INTO voice_state (user_id, channel_id) VALUES (?, ?)').run(user.id, channelId);
+        await dbRun('INSERT INTO voice_state (user_id, channel_id) VALUES (?, ?)', user.id, channelId);
 
-        const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
+        const channel = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
         if (channel && channel.server_id) {
           io.to(`server:${channel.server_id}`).emit('voice:user_joined', {
             channelId,
@@ -133,17 +142,16 @@ function initializeWebSocket(io) {
           });
         }
       } catch (err) {
-        console.error('[WS] Voice join error:', err);
+        console.error('[WS] Voice join error:', err.message);
       }
     });
 
-    socket.on('voice:leave', (data) => {
+    socket.on('voice:leave', async (data) => {
       const { channelId } = data;
       try {
-        const db = getDB();
-        db.prepare('DELETE FROM voice_state WHERE user_id = ? AND channel_id = ?').run(user.id, channelId);
+        await dbRun('DELETE FROM voice_state WHERE user_id = ? AND channel_id = ?', user.id, channelId);
 
-        const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
+        const channel = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
         if (channel && channel.server_id) {
           io.to(`server:${channel.server_id}`).emit('voice:user_left', {
             channelId,
@@ -151,17 +159,16 @@ function initializeWebSocket(io) {
           });
         }
       } catch (err) {
-        console.error('[WS] Voice leave error:', err);
+        console.error('[WS] Voice leave error:', err.message);
       }
     });
 
-    socket.on('voice:mute', (data) => {
+    socket.on('voice:mute', async (data) => {
       const { channelId, muted } = data;
       try {
-        const db = getDB();
-        db.prepare('UPDATE voice_state SET muted = ? WHERE user_id = ?').run(muted ? 1 : 0, user.id);
+        await dbRun('UPDATE voice_state SET muted = ? WHERE user_id = ?', muted ? true : false, user.id);
 
-        const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
+        const channel = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
         if (channel && channel.server_id) {
           io.to(`server:${channel.server_id}`).emit('voice:state_update', {
             channelId,
@@ -170,17 +177,16 @@ function initializeWebSocket(io) {
           });
         }
       } catch (err) {
-        console.error('[WS] Voice mute error:', err);
+        console.error('[WS] Voice mute error:', err.message);
       }
     });
 
-    socket.on('voice:deafen', (data) => {
+    socket.on('voice:deafen', async (data) => {
       const { channelId, deafened } = data;
       try {
-        const db = getDB();
-        db.prepare('UPDATE voice_state SET deafened = ? WHERE user_id = ?').run(deafened ? 1 : 0, user.id);
+        await dbRun('UPDATE voice_state SET deafened = ? WHERE user_id = ?', deafened ? true : false, user.id);
 
-        const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
+        const channel = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
         if (channel && channel.server_id) {
           io.to(`server:${channel.server_id}`).emit('voice:state_update', {
             channelId,
@@ -189,21 +195,20 @@ function initializeWebSocket(io) {
           });
         }
       } catch (err) {
-        console.error('[WS] Voice deafen error:', err);
+        console.error('[WS] Voice deafen error:', err.message);
       }
     });
 
     // ============ PRESENCE ============
 
-    socket.on('presence:update', (data) => {
+    socket.on('presence:update', async (data) => {
       const { status } = data;
       if (['online', 'idle', 'dnd', 'invisible'].includes(status)) {
         try {
-          const db = getDB();
-          db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, user.id);
+          await dbRun('UPDATE users SET status = ? WHERE id = ?', status, user.id);
           broadcastPresence(io, user.id, status);
         } catch (err) {
-          console.error('[WS] Presence update error:', err);
+          console.error('[WS] Presence update error:', err.message);
         }
       }
     });
@@ -247,7 +252,7 @@ function initializeWebSocket(io) {
 
     // ============ DISCONNECT ============
 
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async (reason) => {
       console.log(`[WS] User disconnected: ${user.display_name} (${user.id}) - ${reason}`);
 
       // Remove socket from tracking
@@ -258,17 +263,16 @@ function initializeWebSocket(io) {
 
           // User fully offline - update status
           try {
-            const db = getDB();
-            const currentUser = db.prepare('SELECT status FROM users WHERE id = ?').get(user.id);
+            const currentUser = await dbGet('SELECT status FROM users WHERE id = ?', user.id);
             if (currentUser && currentUser.status !== 'invisible') {
-              db.prepare('UPDATE users SET status = ? WHERE id = ?').run('offline', user.id);
+              await dbRun('UPDATE users SET status = ? WHERE id = ?', 'offline', user.id);
             }
             // Clean up voice state
-            db.prepare('DELETE FROM voice_state WHERE user_id = ?').run(user.id);
+            await dbRun('DELETE FROM voice_state WHERE user_id = ?', user.id);
             // Broadcast offline
             broadcastPresence(io, user.id, 'offline');
           } catch (err) {
-            console.error('[WS] Disconnect cleanup error:', err);
+            console.error('[WS] Disconnect cleanup error:', err.message);
           }
         }
       }
@@ -287,11 +291,10 @@ function initializeWebSocket(io) {
   console.log('[WS] WebSocket handler initialized');
 }
 
-function broadcastPresence(io, userId, status) {
+async function broadcastPresence(io, userId, status) {
   // Broadcast to all servers the user is in
   try {
-    const db = getDB();
-    const userServers = db.prepare('SELECT server_id FROM server_members WHERE user_id = ?').all(userId);
+    const userServers = await dbAll('SELECT server_id FROM server_members WHERE user_id = ?', userId);
     for (const srv of userServers) {
       io.to(`server:${srv.server_id}`).emit('presence:update', {
         userId,
@@ -299,11 +302,11 @@ function broadcastPresence(io, userId, status) {
       });
     }
     // Also broadcast to DM partners
-    const dmPartners = db.prepare(`
+    const dmPartners = await dbAll(`
       SELECT dp2.user_id FROM dm_participants dp1
       JOIN dm_participants dp2 ON dp2.channel_id = dp1.channel_id AND dp2.user_id != dp1.user_id
       WHERE dp1.user_id = ?
-    `).all(userId);
+    `, userId);
     for (const partner of dmPartners) {
       io.to(`user:${partner.user_id}`).emit('presence:update', {
         userId,
@@ -311,7 +314,7 @@ function broadcastPresence(io, userId, status) {
       });
     }
   } catch (err) {
-    console.error('[WS] Broadcast presence error:', err);
+    console.error('[WS] Broadcast presence error:', err.message);
   }
 }
 

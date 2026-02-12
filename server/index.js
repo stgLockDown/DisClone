@@ -247,7 +247,7 @@ async function start() {
     initializeWebSocket(io);
 
     process.stdout.write('\n========================================\n');
-    process.stdout.write('  NEXUS CHAT v3.2.0\n');
+    process.stdout.write('  NEXUS CHAT v3.3.0\n');
     process.stdout.write('  ' + (process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT') + '\n');
     process.stdout.write('  http://0.0.0.0:' + PORT + '\n');
     process.stdout.write('  DB: ' + (process.env.DATABASE_TYPE || 'sqlite') + '\n');
