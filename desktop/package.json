@@ -3,7 +3,10 @@
   "version": "3.2.0",
   "description": "Nexus Chat — Desktop client for the real-time communication platform",
   "main": "main.js",
-  "author": "Nexus Team",
+  "author": {
+    "name": "Nexus Team",
+    "email": "nexus@nexuschat.app"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
