@@ -17,7 +17,12 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
-const { initializeDatabase, seedDefaultData } = require('./database');
+// Load appropriate database module based on DATABASE_TYPE
+const DATABASE_TYPE = process.env.DATABASE_TYPE || 'sqlite';
+const dbModule = DATABASE_TYPE === 'postgres' 
+  ? require('./database-pg') 
+  : require('./database');
+const { initializeDatabase, seedDefaultData } = dbModule;
 const { initializeWebSocket } = require('./websocket');
 const { requireAuth } = require('./middleware/auth');
 
@@ -109,33 +114,32 @@ app.use('/api/friends', friendRoutes);
 app.use('/api', friendRoutes);
 
 // Channel CRUD (top-level /api/channels/:id)
-app.patch('/api/channels/:id', requireAuth, (req, res) => {
-  const { getDB } = require('./database');
+const { dbGet: _dbGet, dbRun: _dbRun } = require('./db');
+
+app.patch('/api/channels/:id', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
-    const ch = db.prepare('SELECT * FROM channels WHERE id = ?').get(req.params.id);
+    const ch = await _dbGet('SELECT * FROM channels WHERE id = ?', req.params.id);
     if (!ch) return res.status(404).json({ success: false, error: 'Channel not found' });
-    const srv = db.prepare('SELECT * FROM servers WHERE id = ?').get(ch.server_id);
+    const srv = await _dbGet('SELECT * FROM servers WHERE id = ?', ch.server_id);
     if (srv.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Insufficient permissions' });
     const allowed = ['name', 'topic', 'icon', 'position'];
     const updates = {};
     for (const [k, v] of Object.entries(req.body)) { if (allowed.includes(k)) updates[k] = v; }
     if (!Object.keys(updates).length) return res.status(400).json({ success: false, error: 'Nothing to update' });
     const set = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-    db.prepare(`UPDATE channels SET ${set} WHERE id = ?`).run(...Object.values(updates), req.params.id);
-    res.json({ success: true, channel: db.prepare('SELECT * FROM channels WHERE id = ?').get(req.params.id) });
+    await _dbRun(`UPDATE channels SET ${set} WHERE id = ?`, ...Object.values(updates), req.params.id);
+    const updated = await _dbGet('SELECT * FROM channels WHERE id = ?', req.params.id);
+    res.json({ success: true, channel: updated });
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-app.delete('/api/channels/:id', requireAuth, (req, res) => {
-  const { getDB } = require('./database');
+app.delete('/api/channels/:id', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
-    const ch = db.prepare('SELECT * FROM channels WHERE id = ?').get(req.params.id);
+    const ch = await _dbGet('SELECT * FROM channels WHERE id = ?', req.params.id);
     if (!ch) return res.status(404).json({ success: false, error: 'Channel not found' });
-    const srv = db.prepare('SELECT * FROM servers WHERE id = ?').get(ch.server_id);
+    const srv = await _dbGet('SELECT * FROM servers WHERE id = ?', ch.server_id);
     if (srv.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Only owner can delete channels' });
-    db.prepare('DELETE FROM channels WHERE id = ?').run(req.params.id);
+    await _dbRun('DELETE FROM channels WHERE id = ?', req.params.id);
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
@@ -216,12 +220,12 @@ async function start() {
       });
     });
     
-    // Now initialize database
+    // Now initialize database (async for PostgreSQL)
     process.stdout.write('[Server] Initializing database...\n');
-    initializeDatabase();
+    await initializeDatabase();
     
     process.stdout.write('[Server] Seeding default data...\n');
-    seedDefaultData();
+    await seedDefaultData();
     
     process.stdout.write('[Server] Initializing WebSocket...\n');
     initializeWebSocket(io);

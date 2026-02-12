@@ -4,30 +4,25 @@
 
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { getDB } = require('../database');
+const { dbGet, dbAll, dbRun } = require('../db');
 const { requireAuth } = require('../middleware/auth');
 const { formatUser } = require('./auth');
 
 const router = express.Router();
 
 // ============ GET /api/servers ============
-// List servers the current user is a member of
-router.get('/', requireAuth, (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
-    const servers = db.prepare(`
+    const servers = await dbAll(`
       SELECT s.id, s.name, s.icon, s.icon_emoji, s.owner_id, s.description, s.created_at,
              (SELECT COUNT(*) FROM server_members WHERE server_id = s.id) as member_count
       FROM servers s
       JOIN server_members sm ON sm.server_id = s.id
       WHERE sm.user_id = ?
       ORDER BY sm.joined_at ASC
-    `).all(req.user.id);
+    `, req.user.id);
 
-    res.json({
-      success: true,
-      servers: servers.map(formatServer)
-    });
+    res.json({ success: true, servers: servers.map(formatServer) });
   } catch (err) {
     console.error('[Servers] List error:', err);
     res.status(500).json({ success: false, error: 'Internal server error' });
@@ -35,69 +30,91 @@ router.get('/', requireAuth, (req, res) => {
 });
 
 // ============ POST /api/servers ============
-// Create a new server
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { name, icon, iconEmoji, description } = req.body;
-
     if (!name || name.length < 1 || name.length > 100) {
       return res.status(400).json({ success: false, error: 'Server name must be 1-100 characters' });
     }
 
-    const db = getDB();
     const serverId = 'srv-' + uuidv4().slice(0, 12);
+    await dbRun(`INSERT INTO servers (id, name, icon, icon_emoji, owner_id, description) VALUES (?, ?, ?, ?, ?, ?)`,
+      serverId, name, icon || null, iconEmoji || null, req.user.id, description || '');
 
-    const createTransaction = db.transaction(() => {
-      // Create server
-      db.prepare(`
-        INSERT INTO servers (id, name, icon, icon_emoji, owner_id, description)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(serverId, name, icon || null, iconEmoji || null, req.user.id, description || '');
+    await dbRun('INSERT INTO server_members (server_id, user_id) VALUES (?, ?)', serverId, req.user.id);
 
-      // Add owner as member
-      db.prepare('INSERT INTO server_members (server_id, user_id) VALUES (?, ?)').run(serverId, req.user.id);
+    const adminRoleId = 'role-' + uuidv4().slice(0, 8);
+    const memberRoleId = 'role-' + uuidv4().slice(0, 8);
+    await dbRun('INSERT INTO roles (id, server_id, name, color, position) VALUES (?, ?, ?, ?, ?)', adminRoleId, serverId, 'Admin', '#f87171', 2);
+    await dbRun('INSERT INTO roles (id, server_id, name, color, position) VALUES (?, ?, ?, ?, ?)', memberRoleId, serverId, 'Member', '#0ea5e9', 1);
+    await dbRun('INSERT INTO member_roles (server_id, user_id, role_id) VALUES (?, ?, ?)', serverId, req.user.id, adminRoleId);
 
-      // Create default roles
-      const adminRoleId = 'role-' + uuidv4().slice(0, 8);
-      const memberRoleId = 'role-' + uuidv4().slice(0, 8);
-      db.prepare('INSERT INTO roles (id, server_id, name, color, position) VALUES (?, ?, ?, ?, ?)').run(adminRoleId, serverId, 'Admin', '#f87171', 2);
-      db.prepare('INSERT INTO roles (id, server_id, name, color, position) VALUES (?, ?, ?, ?, ?)').run(memberRoleId, serverId, 'Member', '#0ea5e9', 1);
+    // Create General category
+    const catId = 'cat-' + uuidv4().slice(0, 8);
+    await dbRun('INSERT INTO categories (id, server_id, name, position) VALUES (?, ?, ?, ?)', catId, serverId, 'General', 0);
 
-      // Assign admin role to owner
-      db.prepare('INSERT INTO member_roles (server_id, user_id, role_id) VALUES (?, ?, ?)').run(serverId, req.user.id, adminRoleId);
+    const generalChId = 'ch-' + uuidv4().slice(0, 8);
+    await dbRun('INSERT INTO channels (id, server_id, category_id, name, type, topic, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      generalChId, serverId, catId, 'general', 'text', 'General discussion', '#', 0);
 
-      // Create default category and channels
-      const catId = 'cat-' + uuidv4().slice(0, 8);
-      db.prepare('INSERT INTO categories (id, server_id, name, position) VALUES (?, ?, ?, ?)').run(catId, serverId, 'General', 0);
+    const vcId = 'vc-' + uuidv4().slice(0, 8);
+    await dbRun('INSERT INTO channels (id, server_id, category_id, name, type, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      vcId, serverId, catId, 'General Voice', 'voice', '🔊', 1);
 
-      const generalChId = 'ch-' + uuidv4().slice(0, 8);
-      db.prepare('INSERT INTO channels (id, server_id, category_id, name, type, topic, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-        generalChId, serverId, catId, 'general', 'text', 'General discussion', '#', 0
-      );
+    await dbRun('INSERT INTO messages (id, channel_id, user_id, content, type, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      'msg-' + uuidv4().slice(0, 8), generalChId, req.user.id, `Welcome to **${name}**! This is the beginning of this server.`, 'system', new Date().toISOString());
 
-      const vcId = 'vc-' + uuidv4().slice(0, 8);
-      db.prepare('INSERT INTO channels (id, server_id, category_id, name, type, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-        vcId, serverId, catId, 'General Voice', 'voice', '🔊', 1
-      );
+    // Add standard hubs to every new server
+    const STANDARD_HUBS = [
+      { name: 'Gaming Hub', channels: [
+        { name: 'gaming-general', type: 'text', icon: '#', topic: 'General gaming discussions' },
+        { name: 'game-night', type: 'text', icon: '#', topic: 'Organize game nights and events' },
+        { name: 'lfg', type: 'text', icon: '#', topic: 'Looking for group - find teammates!' },
+        { name: 'Gaming Voice', type: 'voice', icon: '🔊', topic: '' },
+      ]},
+      { name: 'Music Vibes', channels: [
+        { name: 'music-chat', type: 'text', icon: '#', topic: 'Talk about music' },
+        { name: 'share-tracks', type: 'text', icon: '#', topic: 'Share your favorite songs' },
+        { name: 'Music Lounge', type: 'voice', icon: '🔊', topic: '' },
+      ]},
+      { name: 'Dev Hub', channels: [
+        { name: 'dev-chat', type: 'text', icon: '#', topic: 'Developer discussions' },
+        { name: 'code-help', type: 'text', icon: '#', topic: 'Get help with coding' },
+        { name: 'project-showcase', type: 'text', icon: '#', topic: 'Show off your projects' },
+      ]},
+      { name: 'Art Hub', channels: [
+        { name: 'art-chat', type: 'text', icon: '#', topic: 'Art community discussions' },
+        { name: 'art-showcase', type: 'text', icon: '#', topic: 'Share your artwork' },
+        { name: 'feedback', type: 'text', icon: '#', topic: 'Get constructive feedback' },
+      ]},
+      { name: 'Streamer Hub', channels: [
+        { name: 'stream-chat', type: 'text', icon: '#', topic: 'Talk about streaming' },
+        { name: 'stream-schedule', type: 'text', icon: '#', topic: 'Post your stream schedules' },
+        { name: 'watch-party', type: 'text', icon: '#', topic: 'Organize watch parties' },
+        { name: 'Stream Room', type: 'voice', icon: '🔊', topic: '' },
+      ]}
+    ];
 
-      // System message
-      db.prepare('INSERT INTO messages (id, channel_id, user_id, content, type, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-        'msg-' + uuidv4().slice(0, 8), generalChId, req.user.id, `Welcome to **${name}**! This is the beginning of this server.`, 'system', new Date().toISOString()
-      );
-    });
+    let hubPosition = 1;
+    for (const hub of STANDARD_HUBS) {
+      const hubCatId = 'cat-' + uuidv4().slice(0, 8);
+      await dbRun('INSERT INTO categories (id, server_id, name, position) VALUES (?, ?, ?, ?)', hubCatId, serverId, hub.name, hubPosition++);
+      
+      for (let i = 0; i < hub.channels.length; i++) {
+        const ch = hub.channels[i];
+        const chId = (ch.type === 'voice' ? 'vc-' : 'ch-') + uuidv4().slice(0, 8);
+        await dbRun('INSERT INTO channels (id, server_id, category_id, name, type, topic, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          chId, serverId, hubCatId, ch.name, ch.type, ch.topic || '', ch.icon || '#', i);
+      }
+    }
 
-    createTransaction();
-
-    const server = db.prepare(`
+    const server = await dbGet(`
       SELECT s.id, s.name, s.icon, s.icon_emoji, s.owner_id, s.description, s.created_at,
              (SELECT COUNT(*) FROM server_members WHERE server_id = s.id) as member_count
       FROM servers s WHERE s.id = ?
-    `).get(serverId);
+    `, serverId);
 
-    res.status(201).json({
-      success: true,
-      server: formatServer(server)
-    });
+    res.status(201).json({ success: true, server: formatServer(server) });
   } catch (err) {
     console.error('[Servers] Create error:', err);
     res.status(500).json({ success: false, error: 'Internal server error' });
@@ -105,60 +122,24 @@ router.post('/', requireAuth, (req, res) => {
 });
 
 // ============ GET /api/servers/:id ============
-// Get server details with channels, categories, members, roles
-router.get('/:id', requireAuth, (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
     const serverId = req.params.id;
 
-    // Check membership
-    const membership = db.prepare('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, req.user.id);
-    if (!membership) {
-      return res.status(403).json({ success: false, error: 'Not a member of this server' });
-    }
+    const membership = await dbGet('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?', serverId, req.user.id);
+    if (!membership) return res.status(403).json({ success: false, error: 'Not a member of this server' });
 
-    const server = db.prepare(`
+    const server = await dbGet(`
       SELECT s.id, s.name, s.icon, s.icon_emoji, s.owner_id, s.description, s.created_at,
              (SELECT COUNT(*) FROM server_members WHERE server_id = s.id) as member_count
       FROM servers s WHERE s.id = ?
-    `).get(serverId);
+    `, serverId);
+    if (!server) return res.status(404).json({ success: false, error: 'Server not found' });
 
-    if (!server) {
-      return res.status(404).json({ success: false, error: 'Server not found' });
-    }
+    const categories = await dbAll('SELECT * FROM categories WHERE server_id = ? ORDER BY position ASC', serverId);
+    const channels = await dbAll('SELECT * FROM channels WHERE server_id = ? ORDER BY position ASC', serverId);
 
-    // Get categories
-    const categories = db.prepare('SELECT * FROM categories WHERE server_id = ? ORDER BY position ASC').all(serverId);
-
-    // Get channels grouped by category
-    const channels = db.prepare(`
-      SELECT c.*, 
-             (SELECT COUNT(*) FROM voice_state vs WHERE vs.channel_id = c.id) as voice_user_count
-      FROM channels c 
-      WHERE c.server_id = ? 
-      ORDER BY c.position ASC
-    `).all(serverId);
-
-    // Get voice users for voice channels
-    const voiceChannels = channels.filter(c => c.type === 'voice');
-    const voiceStates = {};
-    for (const vc of voiceChannels) {
-      const voiceUsers = db.prepare(`
-        SELECT u.id, u.display_name, u.username, u.discriminator, u.avatar, u.color, u.initials, u.status,
-               vs.muted, vs.deafened
-        FROM voice_state vs
-        JOIN users u ON u.id = vs.user_id
-        WHERE vs.channel_id = ?
-      `).all(vc.id);
-      voiceStates[vc.id] = voiceUsers.map(u => ({
-        ...formatUser(u),
-        muted: !!u.muted,
-        deafened: !!u.deafened
-      }));
-    }
-
-    // Get members with roles
-    const members = db.prepare(`
+    const members = await dbAll(`
       SELECT u.id, u.display_name, u.username, u.discriminator, u.avatar, u.avatar_emoji,
              u.color, u.initials, u.status, u.custom_status, u.about,
              sm.nickname, sm.joined_at
@@ -166,18 +147,16 @@ router.get('/:id', requireAuth, (req, res) => {
       JOIN users u ON u.id = sm.user_id
       WHERE sm.server_id = ?
       ORDER BY u.display_name ASC
-    `).all(serverId);
+    `, serverId);
 
-    // Get roles
-    const roles = db.prepare('SELECT * FROM roles WHERE server_id = ? ORDER BY position DESC').all(serverId);
+    const roles = await dbAll('SELECT * FROM roles WHERE server_id = ? ORDER BY position DESC', serverId);
 
-    // Get member roles
-    const memberRolesRaw = db.prepare(`
+    const memberRolesRaw = await dbAll(`
       SELECT mr.user_id, r.id as role_id, r.name, r.color, r.position
       FROM member_roles mr
       JOIN roles r ON r.id = mr.role_id
       WHERE mr.server_id = ?
-    `).all(serverId);
+    `, serverId);
 
     const memberRolesMap = {};
     for (const mr of memberRolesRaw) {
@@ -185,22 +164,11 @@ router.get('/:id', requireAuth, (req, res) => {
       memberRolesMap[mr.user_id].push({ id: mr.role_id, name: mr.name, color: mr.color, position: mr.position });
     }
 
-    // Build category->channels structure
     const categoryChannels = categories.map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      position: cat.position,
-      channels: channels
-        .filter(ch => ch.category_id === cat.id)
-        .map(ch => ({
-          id: ch.id,
-          name: ch.name,
-          type: ch.type,
-          topic: ch.topic,
-          icon: ch.icon,
-          position: ch.position,
-          voiceUsers: voiceStates[ch.id] || []
-        }))
+      id: cat.id, name: cat.name, position: cat.position,
+      channels: channels.filter(ch => ch.category_id === cat.id).map(ch => ({
+        id: ch.id, name: ch.name, type: ch.type, topic: ch.topic, icon: ch.icon, position: ch.position, voiceUsers: []
+      }))
     }));
 
     res.json({
@@ -209,17 +177,9 @@ router.get('/:id', requireAuth, (req, res) => {
         ...formatServer(server),
         categories: categoryChannels,
         members: members.map(m => ({
-          ...formatUser(m),
-          nickname: m.nickname,
-          joinedAt: m.joined_at,
-          roles: memberRolesMap[m.id] || []
+          ...formatUser(m), nickname: m.nickname, joinedAt: m.joined_at, roles: memberRolesMap[m.id] || []
         })),
-        roles: roles.map(r => ({
-          id: r.id,
-          name: r.name,
-          color: r.color,
-          position: r.position
-        }))
+        roles: roles.map(r => ({ id: r.id, name: r.name, color: r.color, position: r.position }))
       }
     });
   } catch (err) {
@@ -229,38 +189,31 @@ router.get('/:id', requireAuth, (req, res) => {
 });
 
 // ============ PATCH /api/servers/:id ============
-router.patch('/:id', requireAuth, (req, res) => {
+router.patch('/:id', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
     const serverId = req.params.id;
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId);
+    const server = await dbGet('SELECT * FROM servers WHERE id = ?', serverId);
     if (!server) return res.status(404).json({ success: false, error: 'Server not found' });
     if (server.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Only the owner can update the server' });
 
     const allowed = ['name', 'icon', 'icon_emoji', 'description'];
-    const updates = {};
     const fieldMap = { iconEmoji: 'icon_emoji' };
-
+    const updates = {};
     for (const [key, value] of Object.entries(req.body)) {
       const dbField = fieldMap[key] || key;
       if (allowed.includes(dbField)) updates[dbField] = value;
     }
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ success: false, error: 'No valid fields to update' });
-    }
+    if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'No valid fields to update' });
 
     updates.updated_at = new Date().toISOString();
     const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-    db.prepare(`UPDATE servers SET ${setClauses} WHERE id = ?`).run(...Object.values(updates), serverId);
+    await dbRun(`UPDATE servers SET ${setClauses} WHERE id = ?`, ...Object.values(updates), serverId);
 
-    const updated = db.prepare(`
+    const updated = await dbGet(`
       SELECT s.id, s.name, s.icon, s.icon_emoji, s.owner_id, s.description, s.created_at,
              (SELECT COUNT(*) FROM server_members WHERE server_id = s.id) as member_count
       FROM servers s WHERE s.id = ?
-    `).get(serverId);
-
+    `, serverId);
     res.json({ success: true, server: formatServer(updated) });
   } catch (err) {
     console.error('[Servers] Update error:', err);
@@ -269,16 +222,12 @@ router.patch('/:id', requireAuth, (req, res) => {
 });
 
 // ============ DELETE /api/servers/:id ============
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
-    const serverId = req.params.id;
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId);
+    const server = await dbGet('SELECT * FROM servers WHERE id = ?', req.params.id);
     if (!server) return res.status(404).json({ success: false, error: 'Server not found' });
     if (server.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Only the owner can delete the server' });
-
-    db.prepare('DELETE FROM servers WHERE id = ?').run(serverId);
+    await dbRun('DELETE FROM servers WHERE id = ?', req.params.id);
     res.json({ success: true });
   } catch (err) {
     console.error('[Servers] Delete error:', err);
@@ -287,25 +236,21 @@ router.delete('/:id', requireAuth, (req, res) => {
 });
 
 // ============ POST /api/servers/:id/join ============
-router.post('/:id/join', requireAuth, (req, res) => {
+router.post('/:id/join', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
     const serverId = req.params.id;
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId);
+    const server = await dbGet('SELECT * FROM servers WHERE id = ?', serverId);
     if (!server) return res.status(404).json({ success: false, error: 'Server not found' });
 
-    const existing = db.prepare('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, req.user.id);
+    const existing = await dbGet('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?', serverId, req.user.id);
     if (existing) return res.status(409).json({ success: false, error: 'Already a member' });
 
-    db.prepare('INSERT INTO server_members (server_id, user_id) VALUES (?, ?)').run(serverId, req.user.id);
+    await dbRun('INSERT INTO server_members (server_id, user_id) VALUES (?, ?)', serverId, req.user.id);
 
-    // Assign default member role
-    const memberRole = db.prepare('SELECT id FROM roles WHERE server_id = ? AND name = ? ORDER BY position ASC LIMIT 1').get(serverId, 'Member');
+    const memberRole = await dbGet("SELECT id FROM roles WHERE server_id = ? AND name = 'Member' ORDER BY position ASC LIMIT 1", serverId);
     if (memberRole) {
-      db.prepare('INSERT OR IGNORE INTO member_roles (server_id, user_id, role_id) VALUES (?, ?, ?)').run(serverId, req.user.id, memberRole.id);
+      await dbRun('INSERT INTO member_roles (server_id, user_id, role_id) VALUES (?, ?, ?) ON CONFLICT DO NOTHING', serverId, req.user.id, memberRole.id);
     }
-
     res.json({ success: true });
   } catch (err) {
     console.error('[Servers] Join error:', err);
@@ -314,16 +259,12 @@ router.post('/:id/join', requireAuth, (req, res) => {
 });
 
 // ============ POST /api/servers/:id/leave ============
-router.post('/:id/leave', requireAuth, (req, res) => {
+router.post('/:id/leave', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
-    const serverId = req.params.id;
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId);
+    const server = await dbGet('SELECT * FROM servers WHERE id = ?', req.params.id);
     if (!server) return res.status(404).json({ success: false, error: 'Server not found' });
-    if (server.owner_id === req.user.id) return res.status(400).json({ success: false, error: 'Owner cannot leave. Transfer ownership or delete the server.' });
-
-    db.prepare('DELETE FROM server_members WHERE server_id = ? AND user_id = ?').run(serverId, req.user.id);
+    if (server.owner_id === req.user.id) return res.status(400).json({ success: false, error: 'Owner cannot leave.' });
+    await dbRun('DELETE FROM server_members WHERE server_id = ? AND user_id = ?', req.params.id, req.user.id);
     res.json({ success: true });
   } catch (err) {
     console.error('[Servers] Leave error:', err);
@@ -332,153 +273,63 @@ router.post('/:id/leave', requireAuth, (req, res) => {
 });
 
 // ============ POST /api/servers/:id/channels ============
-router.post('/:id/channels', requireAuth, (req, res) => {
+router.post('/:id/channels', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
     const serverId = req.params.id;
     const { name, type, topic, icon, categoryId } = req.body;
 
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(serverId);
+    const server = await dbGet('SELECT * FROM servers WHERE id = ?', serverId);
     if (!server) return res.status(404).json({ success: false, error: 'Server not found' });
+    if (server.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Insufficient permissions' });
 
-    // Check if user has permission (owner or admin role)
-    if (server.owner_id !== req.user.id) {
-      const adminRole = db.prepare(`
-        SELECT r.id FROM member_roles mr
-        JOIN roles r ON r.id = mr.role_id
-        WHERE mr.server_id = ? AND mr.user_id = ? AND r.name = 'Admin'
-      `).get(serverId, req.user.id);
-      if (!adminRole) return res.status(403).json({ success: false, error: 'Insufficient permissions' });
-    }
-
-    if (!name || name.length < 1 || name.length > 100) {
-      return res.status(400).json({ success: false, error: 'Channel name must be 1-100 characters' });
-    }
+    if (!name || name.length < 1 || name.length > 100) return res.status(400).json({ success: false, error: 'Channel name must be 1-100 characters' });
 
     const channelType = type || 'text';
-    if (!['text', 'voice'].includes(channelType)) {
-      return res.status(400).json({ success: false, error: 'Invalid channel type' });
-    }
+    if (!['text', 'voice'].includes(channelType)) return res.status(400).json({ success: false, error: 'Invalid channel type' });
 
-    // Get or create category
     let catId = categoryId;
     if (!catId) {
-      const defaultCat = db.prepare('SELECT id FROM categories WHERE server_id = ? ORDER BY position ASC LIMIT 1').get(serverId);
+      const defaultCat = await dbGet('SELECT id FROM categories WHERE server_id = ? ORDER BY position ASC LIMIT 1', serverId);
       catId = defaultCat ? defaultCat.id : null;
       if (!catId) {
         catId = 'cat-' + uuidv4().slice(0, 8);
-        db.prepare('INSERT INTO categories (id, server_id, name, position) VALUES (?, ?, ?, ?)').run(catId, serverId, 'General', 0);
+        await dbRun('INSERT INTO categories (id, server_id, name, position) VALUES (?, ?, ?, ?)', catId, serverId, 'General', 0);
       }
     }
 
     const channelId = (channelType === 'voice' ? 'vc-' : 'ch-') + uuidv4().slice(0, 8);
-    const maxPos = db.prepare('SELECT MAX(position) as max FROM channels WHERE server_id = ? AND category_id = ?').get(serverId, catId);
-    const position = (maxPos?.max ?? -1) + 1;
+    const maxPos = await dbGet('SELECT MAX(position) as max FROM channels WHERE server_id = ? AND category_id = ?', serverId, catId);
+    const position = ((maxPos && maxPos.max) || 0) + 1;
 
-    db.prepare(`
-      INSERT INTO channels (id, server_id, category_id, name, type, topic, icon, position)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(channelId, serverId, catId, name, channelType, topic || '', icon || (channelType === 'voice' ? '🔊' : '#'), position);
+    await dbRun('INSERT INTO channels (id, server_id, category_id, name, type, topic, icon, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      channelId, serverId, catId, name, channelType, topic || '', icon || (channelType === 'voice' ? '🔊' : '#'), position);
 
-    const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
-
-    res.status(201).json({
-      success: true,
-      channel: formatChannel(channel)
-    });
+    const channel = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
+    res.status(201).json({ success: true, channel: formatChannel(channel) });
   } catch (err) {
     console.error('[Servers] Create channel error:', err);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
-// ============ PATCH /api/channels/:id ============
-router.patch('/channels/:id', requireAuth, (req, res) => {
-  try {
-    const db = getDB();
-    const channelId = req.params.id;
-
-    const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
-    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(channel.server_id);
-    if (server.owner_id !== req.user.id) {
-      const adminRole = db.prepare(`
-        SELECT r.id FROM member_roles mr
-        JOIN roles r ON r.id = mr.role_id
-        WHERE mr.server_id = ? AND mr.user_id = ? AND r.name = 'Admin'
-      `).get(channel.server_id, req.user.id);
-      if (!adminRole) return res.status(403).json({ success: false, error: 'Insufficient permissions' });
-    }
-
-    const allowed = ['name', 'topic', 'icon', 'position'];
-    const updates = {};
-    for (const [key, value] of Object.entries(req.body)) {
-      if (allowed.includes(key)) updates[key] = value;
-    }
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ success: false, error: 'No valid fields to update' });
-    }
-
-    const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-    db.prepare(`UPDATE channels SET ${setClauses} WHERE id = ?`).run(...Object.values(updates), channelId);
-
-    const updated = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
-    res.json({ success: true, channel: formatChannel(updated) });
-  } catch (err) {
-    console.error('[Channels] Update error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
-
-// ============ DELETE /api/channels/:id ============
-router.delete('/channels/:id', requireAuth, (req, res) => {
-  try {
-    const db = getDB();
-    const channelId = req.params.id;
-
-    const channel = db.prepare('SELECT * FROM channels WHERE id = ?').get(channelId);
-    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    const server = db.prepare('SELECT * FROM servers WHERE id = ?').get(channel.server_id);
-    if (server.owner_id !== req.user.id) {
-      return res.status(403).json({ success: false, error: 'Only the owner can delete channels' });
-    }
-
-    db.prepare('DELETE FROM channels WHERE id = ?').run(channelId);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[Channels] Delete error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
-
 // ============ GET /api/servers/:id/members ============
-router.get('/:id/members', requireAuth, (req, res) => {
+router.get('/:id/members', requireAuth, async (req, res) => {
   try {
-    const db = getDB();
     const serverId = req.params.id;
-
-    const membership = db.prepare('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?').get(serverId, req.user.id);
+    const membership = await dbGet('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?', serverId, req.user.id);
     if (!membership) return res.status(403).json({ success: false, error: 'Not a member' });
 
-    const members = db.prepare(`
+    const members = await dbAll(`
       SELECT u.id, u.display_name, u.username, u.discriminator, u.avatar, u.avatar_emoji,
-             u.color, u.initials, u.status, u.custom_status, u.about,
-             sm.nickname, sm.joined_at
-      FROM server_members sm
-      JOIN users u ON u.id = sm.user_id
-      WHERE sm.server_id = ?
-      ORDER BY u.display_name ASC
-    `).all(serverId);
+             u.color, u.initials, u.status, u.custom_status, u.about, sm.nickname, sm.joined_at
+      FROM server_members sm JOIN users u ON u.id = sm.user_id
+      WHERE sm.server_id = ? ORDER BY u.display_name ASC
+    `, serverId);
 
-    const memberRolesRaw = db.prepare(`
+    const memberRolesRaw = await dbAll(`
       SELECT mr.user_id, r.id as role_id, r.name, r.color, r.position
-      FROM member_roles mr
-      JOIN roles r ON r.id = mr.role_id
-      WHERE mr.server_id = ?
-    `).all(serverId);
+      FROM member_roles mr JOIN roles r ON r.id = mr.role_id WHERE mr.server_id = ?
+    `, serverId);
 
     const memberRolesMap = {};
     for (const mr of memberRolesRaw) {
@@ -488,12 +339,7 @@ router.get('/:id/members', requireAuth, (req, res) => {
 
     res.json({
       success: true,
-      members: members.map(m => ({
-        ...formatUser(m),
-        nickname: m.nickname,
-        joinedAt: m.joined_at,
-        roles: memberRolesMap[m.id] || []
-      }))
+      members: members.map(m => ({ ...formatUser(m), nickname: m.nickname, joinedAt: m.joined_at, roles: memberRolesMap[m.id] || [] }))
     });
   } catch (err) {
     console.error('[Servers] Members error:', err);
@@ -501,33 +347,12 @@ router.get('/:id/members', requireAuth, (req, res) => {
   }
 });
 
-// ============ HELPERS ============
-
 function formatServer(s) {
-  return {
-    id: s.id,
-    name: s.name,
-    icon: s.icon,
-    iconEmoji: s.icon_emoji,
-    ownerId: s.owner_id,
-    description: s.description,
-    memberCount: s.member_count,
-    createdAt: s.created_at,
-  };
+  return { id: s.id, name: s.name, icon: s.icon, iconEmoji: s.icon_emoji, ownerId: s.owner_id, description: s.description, memberCount: parseInt(s.member_count), createdAt: s.created_at };
 }
 
 function formatChannel(ch) {
-  return {
-    id: ch.id,
-    serverId: ch.server_id,
-    categoryId: ch.category_id,
-    name: ch.name,
-    type: ch.type,
-    topic: ch.topic,
-    icon: ch.icon,
-    position: ch.position,
-    isDm: !!ch.is_dm,
-  };
+  return { id: ch.id, serverId: ch.server_id, categoryId: ch.category_id, name: ch.name, type: ch.type, topic: ch.topic, icon: ch.icon, position: ch.position, isDm: !!ch.is_dm };
 }
 
 module.exports = router;

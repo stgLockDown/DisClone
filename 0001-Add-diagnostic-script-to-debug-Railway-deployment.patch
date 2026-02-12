@@ -1,0 +1,115 @@
+From d46e0a7b066539f3e0940028f59801eb33995cca Mon Sep 17 00:00:00 2001
+From: root <root@172.16.123.91>
+Date: Wed, 11 Feb 2026 19:41:34 +0000
+Subject: [PATCH] Add diagnostic script to debug Railway deployment
+
+The Node.js process is crashing silently with no logs.
+This diagnostic script will:
+- Show environment variables
+- Test all module loads
+- Identify which module is failing
+- Run before the main server starts
+
+This will help us see exactly what's failing in Railway's environment.
+---
+ nixpacks.toml      |  3 +-
+ server/diagnose.js | 73 ++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 75 insertions(+), 1 deletion(-)
+ create mode 100644 server/diagnose.js
+
+diff --git a/nixpacks.toml b/nixpacks.toml
+index 7913827..a6a85e6 100644
+--- a/nixpacks.toml
++++ b/nixpacks.toml
+@@ -8,4 +8,5 @@ cmds = ["npm ci"]
+ cmds = ["npm rebuild better-sqlite3 --build-from-source"]
+ 
+ [start]
+-cmd = "node server/index.js"
+\ No newline at end of file
++# Run diagnostic first to see what's failing, then start the server
++cmd = "node server/diagnose.js && node server/index.js"
+\ No newline at end of file
+diff --git a/server/diagnose.js b/server/diagnose.js
+new file mode 100644
+index 0000000..9c22c70
+--- /dev/null
++++ b/server/diagnose.js
+@@ -0,0 +1,73 @@
++// Simple diagnostic script to test what's failing
++process.stdout.write('=== DIAGNOSTIC START ===\n');
++process.stdout.write('Node version: ' + process.version + '\n');
++process.stdout.write('Platform: ' + process.platform + '\n');
++process.stdout.write('Arch: ' + process.arch + '\n');
++process.stdout.write('CWD: ' + process.cwd() + '\n');
++process.stdout.write('ENV PORT: ' + (process.env.PORT || 'not set') + '\n');
++process.stdout.write('ENV DATABASE_TYPE: ' + (process.env.DATABASE_TYPE || 'not set') + '\n');
++process.stdout.write('ENV NODE_ENV: ' + (process.env.NODE_ENV || 'not set') + '\n');
++
++process.stdout.write('\n=== TESTING MODULE LOADS ===\n');
++
++try {
++  require('dotenv');
++  process.stdout.write('✓ dotenv\n');
++} catch (e) {
++  process.stdout.write('✗ dotenv: ' + e.message + '\n');
++}
++
++try {
++  require('express');
++  process.stdout.write('✓ express\n');
++} catch (e) {
++  process.stdout.write('✗ express: ' + e.message + '\n');
++}
++
++try {
++  require('socket.io');
++  process.stdout.write('✓ socket.io\n');
++} catch (e) {
++  process.stdout.write('✗ socket.io: ' + e.message + '\n');
++}
++
++try {
++  require('better-sqlite3');
++  process.stdout.write('✓ better-sqlite3\n');
++} catch (e) {
++  process.stdout.write('✗ better-sqlite3: ' + e.message + '\n');
++}
++
++try {
++  require('pg');
++  process.stdout.write('✓ pg\n');
++} catch (e) {
++  process.stdout.write('✗ pg: ' + e.message + '\n');
++}
++
++process.stdout.write('\n=== TESTING SERVER MODULES ===\n');
++
++try {
++  require('./database');
++  process.stdout.write('✓ database.js\n');
++} catch (e) {
++  process.stdout.write('✗ database.js: ' + e.message + '\n');
++  process.stdout.write('Stack: ' + e.stack + '\n');
++}
++
++try {
++  require('./websocket');
++  process.stdout.write('✓ websocket.js\n');
++} catch (e) {
++  process.stdout.write('✗ websocket.js: ' + e.message + '\n');
++}
++
++try {
++  require('./middleware/auth');
++  process.stdout.write('✓ auth.js\n');
++} catch (e) {
++  process.stdout.write('✗ auth.js: ' + e.message + '\n');
++}
++
++process.stdout.write('\n=== DIAGNOSTIC COMPLETE ===\n');
++process.exit(0);
+\ No newline at end of file
+-- 
+2.39.5
+

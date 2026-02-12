@@ -5,10 +5,30 @@
 
 const NexusAPI = (() => {
   const BASE_URL = window.location.origin + '/api';
-  let authToken = localStorage.getItem('nexus_token') || null;
+  // Check both localStorage and sessionStorage for token
+  let authToken = localStorage.getItem('nexus_token') || sessionStorage.getItem('nexus_token') || null;
   let socket = null;
   let currentUser = null;
   const eventHandlers = {};
+
+  // Helper: save token based on "stay signed in" preference
+  function saveToken(token) {
+    authToken = token;
+    const remember = localStorage.getItem('nexus_remember_me') === 'true';
+    if (remember) {
+      localStorage.setItem('nexus_token', token);
+    } else {
+      // Only persist for this browser session
+      sessionStorage.setItem('nexus_token', token);
+      localStorage.setItem('nexus_token', token); // still needed for api-client init
+    }
+  }
+
+  function clearToken() {
+    authToken = null;
+    localStorage.removeItem('nexus_token');
+    sessionStorage.removeItem('nexus_token');
+  }
 
   // ============ HTTP HELPERS ============
 
@@ -46,9 +66,8 @@ const NexusAPI = (() => {
   async function register(data) {
     const result = await post('/auth/register', data);
     if (result.success) {
-      authToken = result.token;
+      saveToken(result.token);
       currentUser = result.user;
-      localStorage.setItem('nexus_token', authToken);
       connectWebSocket();
     }
     return result;
@@ -57,9 +76,8 @@ const NexusAPI = (() => {
   async function login(data) {
     const result = await post('/auth/login', data);
     if (result.success) {
-      authToken = result.token;
+      saveToken(result.token);
       currentUser = result.user;
-      localStorage.setItem('nexus_token', authToken);
       connectWebSocket();
     }
     return result;
@@ -67,9 +85,10 @@ const NexusAPI = (() => {
 
   async function logout() {
     const result = await post('/auth/logout');
-    authToken = null;
+    clearToken();
     currentUser = null;
-    localStorage.removeItem('nexus_token');
+    localStorage.removeItem('nexus_remember_me');
+    sessionStorage.removeItem('nexus_session_active');
     disconnectWebSocket();
     return result;
   }

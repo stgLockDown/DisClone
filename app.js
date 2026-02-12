@@ -227,7 +227,8 @@ let collapsedCategories = {};
 // ============ INITIALIZATION ============
 
 document.addEventListener('DOMContentLoaded', () => {
-  switchServer('nexus-hq');
+  // Don't auto-switch server here — auth.js handles initialization
+  // switchServer will be called after successful auth
   setupTooltips();
   setupContextMenu();
   setupClickOutside();

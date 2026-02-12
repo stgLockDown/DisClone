@@ -1,12 +1,14 @@
 // ============================================
-// NEXUS CHAT - Auth Middleware (JWT)
+// NEXUS CHAT — Auth Middleware (JWT)
 // ============================================
 
-const jwt = require('jsonwebtoken');
-const { getDB } = require('../database');
+require('dotenv').config({ path: require('path').join(__dirname, '..', '..', '.env') });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'nexus-chat-secret-key-change-in-production';
-const JWT_EXPIRES_IN = '7d';
+const jwt = require('jsonwebtoken');
+const { dbGet } = require('../db');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'nexus-dev-fallback-secret-CHANGE-ME';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 function generateToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
@@ -15,13 +17,12 @@ function generateToken(userId) {
 function verifyToken(token) {
   try {
     return jwt.verify(token, JWT_SECRET);
-  } catch (err) {
+  } catch {
     return null;
   }
 }
 
-// Express middleware - attaches req.user
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -33,12 +34,11 @@ function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  const db = getDB();
-  const user = db.prepare(`
+  const user = await dbGet(`
     SELECT id, email, display_name, username, discriminator, avatar, avatar_emoji,
            color, initials, status, custom_status, about, banner_color, created_at
     FROM users WHERE id = ?
-  `).get(decoded.userId);
+  `, decoded.userId);
 
   if (!user) {
     return res.status(401).json({ error: 'User not found' });
@@ -49,62 +49,40 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// Optional auth - doesn't fail if no token, but attaches user if present
-function optionalAuth(req, res, next) {
+async function optionalAuth(req, res, next) {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next();
-  }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return next();
 
   const token = authHeader.split(' ')[1];
   const decoded = verifyToken(token);
   if (decoded) {
-    const db = getDB();
-    const user = db.prepare(`
+    const user = await dbGet(`
       SELECT id, email, display_name, username, discriminator, avatar, avatar_emoji,
              color, initials, status, custom_status, about, banner_color, created_at
       FROM users WHERE id = ?
-    `).get(decoded.userId);
-    if (user) {
-      req.user = user;
-      req.token = token;
-    }
+    `, decoded.userId);
+    if (user) { req.user = user; req.token = token; }
   }
   next();
 }
 
-// Socket.IO auth middleware
-function socketAuth(socket, next) {
+async function socketAuth(socket, next) {
   const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-  if (!token) {
-    return next(new Error('Authentication required'));
-  }
+  if (!token) return next(new Error('Authentication required'));
 
   const decoded = verifyToken(token);
-  if (!decoded) {
-    return next(new Error('Invalid or expired token'));
-  }
+  if (!decoded) return next(new Error('Invalid or expired token'));
 
-  const db = getDB();
-  const user = db.prepare(`
+  const user = await dbGet(`
     SELECT id, email, display_name, username, discriminator, avatar, avatar_emoji,
            color, initials, status, custom_status, about, banner_color, created_at
     FROM users WHERE id = ?
-  `).get(decoded.userId);
+  `, decoded.userId);
 
-  if (!user) {
-    return next(new Error('User not found'));
-  }
+  if (!user) return next(new Error('User not found'));
 
   socket.user = user;
   next();
 }
 
-module.exports = {
-  JWT_SECRET,
-  generateToken,
-  verifyToken,
-  requireAuth,
-  optionalAuth,
-  socketAuth
-};
+module.exports = { JWT_SECRET, generateToken, verifyToken, requireAuth, optionalAuth, socketAuth };

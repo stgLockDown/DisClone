@@ -11,11 +11,99 @@
   <link rel="stylesheet" href="server-admin.css">
   <link rel="stylesheet" href="social.css">
   <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="auth.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
 </head>
 <body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-bg"></div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">N</div>
+    </div>
+    <h1 class="auth-title" id="authTitle">Create an Account</h1>
+    <p class="auth-subtitle" id="authSubtitle">Join Nexus Chat and start connecting with your community</p>
+
+    <!-- Tab Switcher -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</button>
+      <button class="auth-tab" id="tabLogin" onclick="switchAuthTab('login')">Log In</button>
+    </div>
+
+    <!-- Global Error -->
+    <div class="auth-global-error" id="authGlobalError"></div>
+
+    <!-- SIGNUP FORM -->
+    <form class="auth-form active" id="signupForm" onsubmit="handleAuthSubmit(event, 'signup')">
+      <div class="auth-field">
+        <label class="auth-label">Email <span class="required">*</span></label>
+        <input class="auth-input" type="email" id="signupEmail" placeholder="you@example.com" required autocomplete="email">
+        <div class="auth-error" id="signupEmailError"></div>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Display Name <span class="required">*</span></label>
+        <input class="auth-input" type="text" id="signupDisplayName" placeholder="How others will see you" required autocomplete="name" maxlength="32">
+        <div class="auth-error" id="signupDisplayNameError"></div>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Username <span class="required">*</span></label>
+        <input class="auth-input" type="text" id="signupUsername" placeholder="unique_username" required autocomplete="username" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}">
+        <div class="auth-error" id="signupUsernameError"></div>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Password <span class="required">*</span></label>
+        <input class="auth-input" type="password" id="signupPassword" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6" oninput="updatePasswordStrength(this.value)">
+        <div class="password-strength" id="passwordStrength">
+          <div class="password-strength-bar" id="pwBar1"></div>
+          <div class="password-strength-bar" id="pwBar2"></div>
+          <div class="password-strength-bar" id="pwBar3"></div>
+          <div class="password-strength-bar" id="pwBar4"></div>
+        </div>
+        <div class="auth-error" id="signupPasswordError"></div>
+      </div>
+      <label class="auth-remember">
+        <input type="checkbox" id="signupRemember" checked>
+        <span class="auth-checkbox"></span>
+        <span class="auth-remember-text"><strong>Stay signed in</strong> — don't ask me to log in again on this device</span>
+      </label>
+      <button class="auth-submit" type="submit" id="signupBtn">
+        <span class="btn-text">Create Account</span>
+        <div class="spinner"></div>
+      </button>
+    </form>
+
+    <!-- LOGIN FORM -->
+    <form class="auth-form" id="loginForm" onsubmit="handleAuthSubmit(event, 'login')">
+      <div class="auth-field">
+        <label class="auth-label">Email or Username <span class="required">*</span></label>
+        <input class="auth-input" type="text" id="loginEmail" placeholder="you@example.com or username" required autocomplete="email">
+        <div class="auth-error" id="loginEmailError"></div>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Password <span class="required">*</span></label>
+        <input class="auth-input" type="password" id="loginPassword" placeholder="Your password" required autocomplete="current-password">
+        <div class="auth-error" id="loginPasswordError"></div>
+      </div>
+      <label class="auth-remember">
+        <input type="checkbox" id="loginRemember" checked>
+        <span class="auth-checkbox"></span>
+        <span class="auth-remember-text"><strong>Stay signed in</strong> — don't ask me to log in again on this device</span>
+      </label>
+      <button class="auth-submit" type="submit" id="loginBtn">
+        <span class="btn-text">Log In</span>
+        <div class="spinner"></div>
+      </button>
+    </form>
+
+    <div class="auth-footer" id="authFooter">
+      Already have an account? <a onclick="switchAuthTab('login')">Log in</a>
+    </div>
+  </div>
+</div>
 
 <!-- Tooltip -->
 <div class="tooltip" id="tooltip"></div>
@@ -696,6 +784,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="api-client.js"></script>
 <script src="backend-bridge.js"></script>
+<script src="auth.js"></script>
 <script src="nexus-sdk.js"></script>
 <script src="twitch-integration.js"></script>
 <script src="server-management.js"></script>
