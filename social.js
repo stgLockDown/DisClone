@@ -772,6 +772,49 @@ const NexusFriends = (() => {
   };
 
   let activeTab = 'online';
+  let loaded = false;
+
+  // Store user data from backend into the global users object
+  function cacheUser(u) {
+    if (!u || !u.id) return;
+    if (typeof users === 'undefined') return;
+    users[u.id] = {
+      id: u.id,
+      name: u.displayName || u.display_name || u.username || 'User',
+      tag: u.tag || (u.username + '#' + (u.discriminator || '0000')),
+      color: u.color || '#0ea5e9',
+      initials: u.initials || (u.displayName || u.username || '?')[0].toUpperCase(),
+      status: u.status || 'offline',
+      about: u.about || '',
+      avatar: u.avatar || null,
+      avatarEmoji: u.avatarEmoji || null,
+      username: u.username,
+      discriminator: u.discriminator,
+      customStatus: u.customStatus || '',
+    };
+  }
+
+  // Load friends data from backend response
+  function setFromBackend(data) {
+    if (!data) return;
+    friendsData.friends = (data.friends || []).map(f => {
+      cacheUser(f);
+      return { userId: f.id, since: f.friendsSince };
+    });
+    friendsData.incoming = (data.incoming || []).map(f => {
+      cacheUser(f);
+      return { userId: f.id, requestId: f.requestId, timestamp: f.requestedAt };
+    });
+    friendsData.outgoing = (data.outgoing || []).map(f => {
+      cacheUser(f);
+      return { userId: f.id, requestId: f.requestId, timestamp: f.requestedAt };
+    });
+    friendsData.blocked = (data.blocked || []).map(f => {
+      cacheUser(f);
+      return { userId: f.id, blockId: f.blockId, timestamp: f.blockedAt };
+    });
+    loaded = true;
+  }
 
   function getFriends() { return friendsData.friends; }
   function getIncoming() { return friendsData.incoming; }
@@ -827,27 +870,9 @@ const NexusFriends = (() => {
   }
 
   function sendRequest(usernameOrTag) {
-    const lower = usernameOrTag.toLowerCase();
-    // Find user by tag or username
-    for (const uid in users) {
-      const u = users[uid];
-      if (uid === 'u-self') continue;
-      if (u.tag?.toLowerCase() === lower || u.name?.toLowerCase() === lower || u.tag?.split('#')[0]?.toLowerCase() === lower) {
-        // Check if already friends
-        if (friendsData.friends.find(f => f.userId === uid)) return { success: false, message: 'Already friends!' };
-        if (friendsData.outgoing.find(r => r.userId === uid)) return { success: false, message: 'Request already sent!' };
-        if (friendsData.blocked.find(b => b.userId === uid)) return { success: false, message: 'User is blocked.' };
-        // Check if they sent us a request
-        const inIdx = friendsData.incoming.findIndex(r => r.userId === uid);
-        if (inIdx !== -1) {
-          acceptRequest(uid);
-          return { success: true, message: `You are now friends with ${u.name}!`, accepted: true };
-        }
-        friendsData.outgoing.push({ userId: uid, timestamp: new Date().toISOString() });
-        return { success: true, message: `Friend request sent to ${u.name}!` };
-      }
-    }
-    return { success: false, message: 'User not found. Make sure the username is correct.' };
+    // In production, this should go through the backend
+    // This is a fallback for offline mode only
+    return { success: false, message: 'Cannot send friend requests in offline mode.' };
   }
 
   function getMutualServers(userId) {
@@ -865,16 +890,17 @@ const NexusFriends = (() => {
   return {
     getFriends, getIncoming, getOutgoing, getBlocked,
     acceptRequest, declineRequest, removeFriend, blockUser, unblockUser,
-    sendRequest, getMutualServers,
+    sendRequest, getMutualServers, setFromBackend,
     get activeTab() { return activeTab; },
-    set activeTab(v) { activeTab = v; }
+    set activeTab(v) { activeTab = v; },
+    get loaded() { return loaded; }
   };
 })();
 
 
 // ============ FRIENDS UI ============
 
-function showFriendsPage() {
+async function showFriendsPage() {
   // Hide normal chat content, show friends page
   const chatWrapper = document.querySelector('.chat-content-wrapper');
   const chatHeader = document.querySelector('.chat-header');
@@ -892,6 +918,18 @@ function showFriendsPage() {
 
   friendsPage.classList.add('visible');
   if (chatWrapper) chatWrapper.style.display = 'none';
+
+  // Load friends from backend
+  if (typeof NexusBackend !== 'undefined' && typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    try {
+      const result = await NexusBackend.loadFriends();
+      if (result && result.success) {
+        NexusFriends.setFromBackend(result);
+      }
+    } catch (err) {
+      console.error('[Social] Failed to load friends:', err);
+    }
+  }
 
   // Replace header
   if (chatHeader) {
@@ -966,8 +1004,8 @@ function renderFriendsContent() {
 
   if (tab === 'online') {
     items = NexusFriends.getFriends().filter(f => {
-      const u = users[f.userId];
-      return u && u.status !== 'offline';
+      const u = users[f.userId] || {};
+      return u.status && u.status !== 'offline';
     });
   } else if (tab === 'all') {
     items = NexusFriends.getFriends();
@@ -1041,22 +1079,26 @@ function renderFriendsContent() {
 }
 
 function renderFriendItem(friend) {
-  const u = users[friend.userId];
-  if (!u) return '';
+  const u = users[friend.userId] || {};
+  const name = u.name || u.displayName || 'Unknown User';
+  const color = u.color || '#0ea5e9';
+  const initials = u.initials || name[0]?.toUpperCase() || '?';
+  const status = u.status || 'offline';
+  const about = u.about || '';
 
   const statusColors = { online: '#06d6a0', idle: '#f59e0b', dnd: '#f87171', offline: '#64748b' };
-  const statusText = u.status === 'dnd' ? 'Do Not Disturb' : u.status ? u.status.charAt(0).toUpperCase() + u.status.slice(1) : 'Offline';
+  const statusText = status === 'dnd' ? 'Do Not Disturb' : status.charAt(0).toUpperCase() + status.slice(1);
   const mutuals = NexusFriends.getMutualServers(friend.userId);
 
   return `
     <div class="friend-item" data-user="${friend.userId}">
-      <div class="friend-avatar" style="background:${u.color}">
-        ${u.initials || '?'}
-        <div class="friend-status-dot" style="background:${statusColors[u.status] || '#64748b'}"></div>
+      <div class="friend-avatar" style="background:${color}">
+        ${initials}
+        <div class="friend-status-dot" style="background:${statusColors[status] || '#64748b'}"></div>
       </div>
       <div class="friend-info">
-        <div class="friend-name">${u.name}</div>
-        <div class="friend-status-text">${u.about || statusText}</div>
+        <div class="friend-name">${name}</div>
+        <div class="friend-status-text">${about || statusText}</div>
         ${mutuals.length > 0 ? `
           <div class="friend-mutual-servers">
             ${mutuals.map(s => `<div class="friend-mutual-server" style="background:var(--nexus-primary)" title="${s.name}">${s.name[0]}</div>`).join('')}
@@ -1074,16 +1116,18 @@ function renderFriendItem(friend) {
 }
 
 function renderPendingItem(request, type) {
-  const u = users[request.userId];
-  if (!u) return '';
+  const u = users[request.userId] || {};
+  const name = u.name || u.displayName || 'Unknown User';
+  const color = u.color || '#0ea5e9';
+  const initials = u.initials || name[0]?.toUpperCase() || '?';
 
   return `
     <div class="friend-item" data-user="${request.userId}">
-      <div class="friend-avatar" style="background:${u.color}">
-        ${u.initials || '?'}
+      <div class="friend-avatar" style="background:${color}">
+        ${initials}
       </div>
       <div class="friend-info">
-        <div class="friend-name">${u.name}</div>
+        <div class="friend-name">${name}</div>
         <div class="friend-status-text">${type === 'incoming' ? 'Incoming Friend Request' : 'Outgoing Friend Request'}</div>
       </div>
       <div class="friend-actions">
@@ -1099,16 +1143,18 @@ function renderPendingItem(request, type) {
 }
 
 function renderBlockedItem(blocked) {
-  const u = users[blocked.userId];
-  if (!u) return '';
+  const u = users[blocked.userId] || {};
+  const name = u.name || u.displayName || 'Unknown User';
+  const color = u.color || '#0ea5e9';
+  const initials = u.initials || name[0]?.toUpperCase() || '?';
 
   return `
     <div class="friend-item" data-user="${blocked.userId}">
-      <div class="friend-avatar" style="background:${u.color};opacity:0.5">
-        ${u.initials || '?'}
+      <div class="friend-avatar" style="background:${color};opacity:0.5">
+        ${initials}
       </div>
       <div class="friend-info">
-        <div class="friend-name" style="opacity:0.7">${u.name}</div>
+        <div class="friend-name" style="opacity:0.7">${name}</div>
         <div class="friend-status-text">Blocked</div>
       </div>
       <div class="friend-actions">
@@ -1121,12 +1167,22 @@ function renderBlockedItem(blocked) {
 function getQuickAddSuggestions() {
   const friendIds = NexusFriends.getFriends().map(f => f.userId);
   const selfId = currentUser.id || currentUser._authId || 'u-self';
-  const suggestions = Object.values(users).filter(u => u.id !== selfId && !u.isBot && !friendIds.includes(u.id));
+  const suggestions = Object.values(users).filter(u => u.id && u.id !== selfId && !u.isBot && !friendIds.includes(u.id));
+
+  if (suggestions.length === 0) {
+    return `
+      <div style="background:var(--bg-primary);border-radius:8px;padding:20px;text-align:center;width:100%;">
+        <div style="font-size:24px;margin-bottom:8px;">🔍</div>
+        <div style="font-size:13px;color:var(--text-secondary);">Enter a username above to find and add friends!</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Try their username#0000 or just their username</div>
+      </div>
+    `;
+  }
 
   return suggestions.slice(0, 4).map(u => `
     <div style="background:var(--bg-primary);border-radius:8px;padding:12px;flex:1;min-width:140px;text-align:center;">
-      <div style="width:48px;height:48px;border-radius:50%;background:${u.color};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin:0 auto 8px;">${u.initials}</div>
-      <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${u.name}</div>
+      <div style="width:48px;height:48px;border-radius:50%;background:${u.color || '#0ea5e9'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin:0 auto 8px;">${u.initials || (u.name || '?')[0]}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${u.name || 'User'}</div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">${u.tag || ''}</div>
       <button class="btn btn-primary" style="font-size:12px;padding:4px 12px;" onclick="quickAddFriend('${u.id}')">Add Friend</button>
     </div>
@@ -1141,32 +1197,41 @@ function sendFriendRequest() {
 
   // Use backend API
   if (typeof NexusBackend !== 'undefined' && typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
-    NexusBackend.sendFriendRequest(input.value.trim()).then(result => {
+    NexusBackend.sendFriendRequest(input.value.trim()).then(async (result) => {
       const msg = result.message || (result.success ? 'Friend request sent!' : (result.error || 'Failed to send request'));
       resultDiv.innerHTML = `<span style="color:${result.success ? 'var(--nexus-success)' : 'var(--nexus-danger)'}">${msg}</span>`;
       if (result.success) {
         input.value = '';
         if (typeof showToast === 'function') showToast(msg);
-        setTimeout(() => renderFriendsContent(), 1000);
+        // Reload friends data from backend
+        try {
+          const friendsResult = await NexusBackend.loadFriends();
+          if (friendsResult && friendsResult.success) {
+            NexusFriends.setFromBackend(friendsResult);
+          }
+        } catch(e) {}
+        setTimeout(() => renderFriendsContent(), 500);
       }
     });
   } else {
-    const result = NexusFriends.sendRequest(input.value.trim());
-    resultDiv.innerHTML = `<span style="color:${result.success ? 'var(--nexus-success)' : 'var(--nexus-danger)'}">${result.message}</span>`;
-    if (result.success) {
-      input.value = '';
-      if (typeof showToast === 'function') showToast(result.message);
-      setTimeout(() => renderFriendsContent(), 1000);
-    }
+    resultDiv.innerHTML = `<span style="color:var(--nexus-danger)">Please log in to send friend requests.</span>`;
   }
 }
 
-function quickAddFriend(userId) {
+async function quickAddFriend(userId) {
   const u = users[userId];
   if (!u) return;
-  const result = NexusFriends.sendRequest(u.tag || u.name);
-  if (typeof showToast === 'function') showToast(result.message);
-  renderFriendsContent();
+  if (typeof NexusBackend !== 'undefined' && typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    try {
+      const result = await NexusBackend.sendFriendRequest(u.tag || u.name || userId);
+      if (typeof showToast === 'function') showToast(result.message || (result.success ? 'Friend request sent!' : 'Failed to send request'));
+      showFriendsPage();
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('Failed to send friend request');
+    }
+  } else {
+    if (typeof showToast === 'function') showToast('Cannot send friend requests in offline mode');
+  }
 }
 
 function acceptFriendRequest(userId) {
@@ -1191,9 +1256,13 @@ function declineFriendRequest(userId) {
 }
 
 function cancelFriendRequest(userId) {
-  const outgoing = NexusFriends.getOutgoing();
-  const idx = outgoing.findIndex(r => r.userId === userId);
-  if (idx !== -1) outgoing.splice(idx, 1);
+  if (typeof NexusBackend !== 'undefined' && typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    NexusBackend.declineFriendRequest(userId).then(() => { showFriendsPage(); });
+  } else {
+    const outgoing = NexusFriends.getOutgoing();
+    const idx = outgoing.findIndex(r => r.userId === userId);
+    if (idx !== -1) outgoing.splice(idx, 1);
+  }
   if (typeof showToast === 'function') showToast('Friend request cancelled.');
   showFriendsPage();
 }
@@ -1209,20 +1278,35 @@ function unblockFriendUser(userId) {
   showFriendsPage();
 }
 
-function openDMFromFriend(userId) {
+async function openDMFromFriend(userId) {
   const u = users[userId];
-  if (!u) return;
 
-  // Check if DM channel exists
+  // Use backend to create/get DM
+  if (typeof NexusBackend !== 'undefined' && typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    try {
+      const result = await NexusBackend.openDM(userId);
+      if (result && result.success && result.channel) {
+        hideFriendsPage();
+        if (typeof switchServer === 'function') switchServer('home');
+        if (typeof switchChannel === 'function') switchChannel(result.channel.id);
+        return;
+      }
+    } catch (err) {
+      console.error('[Social] Open DM error:', err);
+    }
+  }
+
+  // Fallback: local DM channel
+  if (!u) return;
   const homeServer = servers['home'];
+  if (!homeServer) return;
   const dmChannels = homeServer?.channels?.['dm'] || [];
   let dmChannel = dmChannels.find(ch => ch.id === 'dm-' + userId.replace('u-', ''));
 
   if (!dmChannel) {
-    // Create DM channel
     dmChannel = {
       id: 'dm-' + userId.replace('u-', ''),
-      name: u.name,
+      name: u.name || 'DM',
       type: 'dm',
       icon: '💬'
     };
@@ -1246,8 +1330,7 @@ function startCallFromFriend(userId, type) {
 
 function showFriendContextMenu(event, userId) {
   event.stopPropagation();
-  const u = users[userId];
-  if (!u) return;
+  const u = users[userId] || {};
 
   // Remove existing
   const existing = document.querySelector('.friend-context-menu');
@@ -1273,8 +1356,22 @@ function showFriendContextMenu(event, userId) {
     { label: '📞 Voice Call', action: () => startCallFromFriend(userId, 'voice') },
     { label: '📹 Video Call', action: () => startCallFromFriend(userId, 'video') },
     { separator: true },
-    { label: '❌ Remove Friend', action: () => { NexusFriends.removeFriend(userId); showToast(`Removed ${u.name} from friends.`); showFriendsPage(); }, danger: true },
-    { label: '🚫 Block', action: () => { NexusFriends.blockUser(userId); showToast(`Blocked ${u.name}.`); showFriendsPage(); }, danger: true }
+    { label: '❌ Remove Friend', action: async () => {
+      if (typeof NexusBackend !== 'undefined' && NexusAPI.isAuthenticated()) {
+        await NexusBackend.removeFriend(userId);
+      }
+      NexusFriends.removeFriend(userId);
+      showToast(`Removed ${u?.name || 'user'} from friends.`);
+      showFriendsPage();
+    }, danger: true },
+    { label: '🚫 Block', action: async () => {
+      if (typeof NexusBackend !== 'undefined' && NexusAPI.isAuthenticated()) {
+        await NexusBackend.blockUser(userId);
+      }
+      NexusFriends.blockUser(userId);
+      showToast(`Blocked ${u?.name || 'user'}.`);
+      showFriendsPage();
+    }, danger: true }
   ];
 
   items.forEach(item => {
