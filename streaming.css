@@ -142,7 +142,7 @@
   transition: background 0.15s;
 }
 .stream-ctrl-btn:hover { background: rgba(255,255,255,0.2); }
-.stream-ctrl-btn.active { background: rgba(14,165,233,0.3); color: #0ea5e9; }
+.stream-ctrl-btn.active { background: rgba(14,165,233,0.3); color: #dc2626; }
 .stream-ctrl-btn.end-stream { background: rgba(239,68,68,0.3); color: #ef4444; }
 .stream-ctrl-btn.end-stream:hover { background: rgba(239,68,68,0.5); }
 
@@ -159,7 +159,7 @@
 
 .stream-volume-slider {
   width: 80px;
-  accent-color: #0ea5e9;
+  accent-color: #dc2626;
 }
 
 .stream-controls-spacer { flex: 1; }
@@ -238,8 +238,8 @@
 }
 .stream-picker-tab:hover { color: var(--text-secondary, #8b95a8); }
 .stream-picker-tab.active {
-  color: var(--nexus-primary, #0ea5e9);
-  border-bottom-color: var(--nexus-primary, #0ea5e9);
+  color: var(--nexus-primary, #dc2626);
+  border-bottom-color: var(--nexus-primary, #dc2626);
 }
 
 .stream-picker-body {
@@ -264,7 +264,7 @@
   transform: translateY(-1px);
 }
 .stream-source-card.selected {
-  border-color: var(--nexus-primary, #0ea5e9);
+  border-color: var(--nexus-primary, #dc2626);
 }
 
 .stream-source-preview {
@@ -438,5 +438,5 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--nexus-accent, #06d6a0);
+  background: var(--nexus-accent, #f43f5e);
 }

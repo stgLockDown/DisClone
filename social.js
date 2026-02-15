@@ -88,7 +88,7 @@ const NexusAuth = (() => {
 
     const discriminator = generateDiscriminator();
     const userId = 'u-' + Date.now().toString(36);
-    const colors = ['#0ea5e9', '#f87171', '#a78bfa', '#06d6a0', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#e879f9'];
+    const colors = ['#dc2626', '#f87171', '#a78bfa', '#f43f5e', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#e879f9'];
     const color = colors[Math.floor(Math.random() * colors.length)];
 
     const user = {
@@ -106,8 +106,8 @@ const NexusAuth = (() => {
       status: 'online',
       customStatus: '',
       about: 'Hey there! I\'m using Nexus Chat.',
-      bannerColor: '#0ea5e9',
-      roles: [{ name: 'Member', color: '#0ea5e9' }],
+      bannerColor: '#dc2626',
+      roles: [{ name: 'Member', color: '#dc2626' }],
       friends: [],
       friendRequests: { incoming: [], outgoing: [] },
       blocked: [],
@@ -458,7 +458,7 @@ function applyUserToApp(user) {
     currentUser.about = user.about;
     currentUser.avatar = user.avatar;
     currentUser.avatarEmoji = user.avatarEmoji;
-    currentUser.bannerColor = user.bannerColor || '#0ea5e9';
+    currentUser.bannerColor = user.bannerColor || '#dc2626';
     currentUser.customStatus = user.customStatus || '';
     currentUser._authId = user.id;
   }
@@ -535,13 +535,13 @@ function renderProfileEditor() {
   const content = document.getElementById('profileEditorContent');
   if (!content) return;
 
-  const avatarColors = ['#0ea5e9','#f87171','#a78bfa','#06d6a0','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#e879f9','#38bdf8'];
+  const avatarColors = ['#dc2626','#f87171','#a78bfa','#f43f5e','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#e879f9','#38bdf8'];
   const avatarEmojis = ['😎','🎮','🎵','🎨','💻','🚀','🌟','🔥','💎','🦊','🐱','🐺','🦁','🐉','🤖','👾','🎭','🌈'];
-  const bannerColors = ['#0ea5e9','#f87171','#a78bfa','#06d6a0','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#e879f9','#1e293b','#dc2626','#059669','#7c3aed','#ea580c'];
+  const bannerColors = ['#dc2626','#f87171','#a78bfa','#f43f5e','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#e879f9','#1e293b','#dc2626','#059669','#7c3aed','#ea580c'];
 
   const currentAvatar = user.avatarEmoji || user.initials || 'N';
-  const currentBanner = user.bannerColor || '#0ea5e9';
-  const currentColor = user.color || '#0ea5e9';
+  const currentBanner = user.bannerColor || '#dc2626';
+  const currentColor = user.color || '#dc2626';
 
   content.innerHTML = `
     <div class="profile-editor-left">
@@ -577,7 +577,7 @@ function renderProfileEditor() {
       <div class="status-selector">
         ${['online','idle','dnd','offline'].map(s => `
           <div class="status-option ${(user.status || 'online') === s ? 'selected' : ''}" onclick="selectStatus('${s}', this)">
-            <div class="status-dot-preview" style="background:${s === 'online' ? '#06d6a0' : s === 'idle' ? '#f59e0b' : s === 'dnd' ? '#f87171' : '#64748b'}"></div>
+            <div class="status-dot-preview" style="background:${s === 'online' ? '#f43f5e' : s === 'idle' ? '#f59e0b' : s === 'dnd' ? '#f87171' : '#64748b'}"></div>
             <div class="status-label">${s === 'dnd' ? 'Do Not Disturb' : s.charAt(0).toUpperCase() + s.slice(1)}</div>
           </div>
         `).join('')}
@@ -608,7 +608,7 @@ function renderProfileEditor() {
             <div class="profile-preview-avatar" id="previewAvatar" style="background:${currentColor}">
               ${currentAvatar}
             </div>
-            <div class="profile-preview-status-dot" id="previewStatusDot" style="background:${user.status === 'online' ? '#06d6a0' : user.status === 'idle' ? '#f59e0b' : user.status === 'dnd' ? '#f87171' : '#64748b'}"></div>
+            <div class="profile-preview-status-dot" id="previewStatusDot" style="background:${user.status === 'online' ? '#f43f5e' : user.status === 'idle' ? '#f59e0b' : user.status === 'dnd' ? '#f87171' : '#64748b'}"></div>
           </div>
         </div>
         <div class="profile-preview-body">
@@ -623,7 +623,7 @@ function renderProfileEditor() {
           <div class="profile-preview-section">
             <h4>Roles</h4>
             <div class="profile-preview-roles">
-              ${(user.roles || [{name:'Member',color:'#0ea5e9'}]).map(r => `<div class="profile-preview-role"><div class="dot" style="background:${r.color}"></div>${r.name}</div>`).join('')}
+              ${(user.roles || [{name:'Member',color:'#dc2626'}]).map(r => `<div class="profile-preview-role"><div class="dot" style="background:${r.color}"></div>${r.name}</div>`).join('')}
             </div>
           </div>
         </div>
@@ -703,7 +703,7 @@ function selectStatus(status, el) {
   _selectedStatus = status;
   document.querySelectorAll('.status-option').forEach(o => o.classList.remove('selected'));
   el.classList.add('selected');
-  const colors = { online: '#06d6a0', idle: '#f59e0b', dnd: '#f87171', offline: '#64748b' };
+  const colors = { online: '#f43f5e', idle: '#f59e0b', dnd: '#f87171', offline: '#64748b' };
   document.getElementById('previewStatusDot').style.background = colors[status];
 }
 
@@ -782,7 +782,7 @@ const NexusFriends = (() => {
       id: u.id,
       name: u.displayName || u.display_name || u.username || 'User',
       tag: u.tag || (u.username + '#' + (u.discriminator || '0000')),
-      color: u.color || '#0ea5e9',
+      color: u.color || '#dc2626',
       initials: u.initials || (u.displayName || u.username || '?')[0].toUpperCase(),
       status: u.status || 'offline',
       about: u.about || '',
@@ -980,19 +980,22 @@ function renderFriendsContent() {
 
   if (tab === 'add') {
     friendsPage.innerHTML = `
-      <div class="add-friend-section visible">
+      <div class="add-friend-section">
         <h2>Add Friend</h2>
         <p>You can add friends with their Nexus username.</p>
         <div class="add-friend-input-row" id="addFriendRow">
-          <input id="addFriendInput" placeholder="Enter a username#0000" onkeydown="if(event.key==='Enter')sendFriendRequest()">
+          <input id="addFriendInput" placeholder="You can add friends with their Nexus username." onkeydown="if(event.key==='Enter')sendFriendRequest()">
           <button onclick="sendFriendRequest()" id="addFriendBtn">Send Friend Request</button>
         </div>
         <div id="addFriendResult" style="margin-top:12px;font-size:13px;"></div>
       </div>
       <div style="padding:20px;">
         <div class="friends-section-label">OTHER PLACES TO MAKE FRIENDS</div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;">
-          ${getQuickAddSuggestions()}
+        <p style="font-size:13px;color:var(--text-secondary);margin:4px 0 16px;">Don't have a username on hand? Check out our list of public servers that includes everything from gaming to cooking, music, anime and more.</p>
+        <div class="explore-servers-link" onclick="if(typeof showDiscovery==='function') showDiscovery()">
+          <div class="explore-servers-icon">🧭</div>
+          <div class="explore-servers-text">Explore Discoverable Servers</div>
+          <div class="explore-servers-arrow">›</div>
         </div>
       </div>
     `;
@@ -1081,12 +1084,12 @@ function renderFriendsContent() {
 function renderFriendItem(friend) {
   const u = users[friend.userId] || {};
   const name = u.name || u.displayName || 'Unknown User';
-  const color = u.color || '#0ea5e9';
+  const color = u.color || '#dc2626';
   const initials = u.initials || name[0]?.toUpperCase() || '?';
   const status = u.status || 'offline';
   const about = u.about || '';
 
-  const statusColors = { online: '#06d6a0', idle: '#f59e0b', dnd: '#f87171', offline: '#64748b' };
+  const statusColors = { online: '#f43f5e', idle: '#f59e0b', dnd: '#f87171', offline: '#64748b' };
   const statusText = status === 'dnd' ? 'Do Not Disturb' : status.charAt(0).toUpperCase() + status.slice(1);
   const mutuals = NexusFriends.getMutualServers(friend.userId);
 
@@ -1118,7 +1121,7 @@ function renderFriendItem(friend) {
 function renderPendingItem(request, type) {
   const u = users[request.userId] || {};
   const name = u.name || u.displayName || 'Unknown User';
-  const color = u.color || '#0ea5e9';
+  const color = u.color || '#dc2626';
   const initials = u.initials || name[0]?.toUpperCase() || '?';
 
   return `
@@ -1145,7 +1148,7 @@ function renderPendingItem(request, type) {
 function renderBlockedItem(blocked) {
   const u = users[blocked.userId] || {};
   const name = u.name || u.displayName || 'Unknown User';
-  const color = u.color || '#0ea5e9';
+  const color = u.color || '#dc2626';
   const initials = u.initials || name[0]?.toUpperCase() || '?';
 
   return `
@@ -1181,7 +1184,7 @@ function getQuickAddSuggestions() {
 
   return suggestions.slice(0, 4).map(u => `
     <div style="background:var(--bg-primary);border-radius:8px;padding:12px;flex:1;min-width:140px;text-align:center;">
-      <div style="width:48px;height:48px;border-radius:50%;background:${u.color || '#0ea5e9'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin:0 auto 8px;">${u.initials || (u.name || '?')[0]}</div>
+      <div style="width:48px;height:48px;border-radius:50%;background:${u.color || '#dc2626'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin:0 auto 8px;">${u.initials || (u.name || '?')[0]}</div>
       <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${u.name || 'User'}</div>
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">${u.tag || ''}</div>
       <button class="btn btn-primary" style="font-size:12px;padding:4px 12px;" onclick="quickAddFriend('${u.id}')">Add Friend</button>
@@ -1864,7 +1867,7 @@ function openEncryptionPanel(channelId) {
       ` : ''}
       <div class="enc-detail-row">
         <span class="enc-detail-label">Status</span>
-        <span class="enc-detail-value" style="color:#06d6a0;">✓ Active</span>
+        <span class="enc-detail-value" style="color:#f43f5e;">✓ Active</span>
       </div>
 
       ${isE2E && otherUser ? `

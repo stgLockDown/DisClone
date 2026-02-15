@@ -248,6 +248,50 @@
   </div>
 </div>
 
+<!-- Invite Modal -->
+<div class="modal-overlay" id="inviteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Invite Friends</h2>
+      <p>Share this invite link with others to grant access to your server.</p>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Invite Link</label>
+        <div style="display:flex;gap:8px;">
+          <input class="form-input" id="inviteLinkInput" readonly style="flex:1;">
+          <button class="btn btn-primary" onclick="copyInviteLink()">Copy</button>
+        </div>
+      </div>
+      <div id="inviteStatus" style="font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('inviteModal')">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Join Server Modal -->
+<div class="modal-overlay" id="joinServerModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Join a Server</h2>
+      <p>Enter an invite code or link to join an existing server.</p>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Invite Link or Code</label>
+        <input class="form-input" id="joinInviteCode" placeholder="Enter invite code (e.g. AbCdEfGh)">
+      </div>
+      <div id="joinServerResult" style="font-size:13px;margin-top:8px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('joinServerModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="joinServerViaInvite()">Join Server</button>
+    </div>
+  </div>
+</div>
+
 <!-- Server Creation Wizard -->
 <div class="wizard-overlay" id="serverWizard">
   <div class="wizard">

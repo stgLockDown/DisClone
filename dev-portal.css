@@ -8,8 +8,8 @@
   --dev-surface-2: #1a2030;
   --dev-surface-3: #222a3a;
   --dev-border: rgba(255,255,255,0.08);
-  --dev-accent: #0ea5e9;
-  --dev-accent-2: #06d6a0;
+  --dev-accent: #dc2626;
+  --dev-accent-2: #f43f5e;
   --dev-text: #e8ecf4;
   --dev-text-2: #8b95a8;
   --dev-text-3: #5c6578;
@@ -65,7 +65,7 @@ a:hover { text-decoration: underline; }
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0ea5e9, #06d6a0);
+  background: linear-gradient(135deg, #dc2626, #f43f5e);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,7 +171,7 @@ a:hover { text-decoration: underline; }
 }
 
 .dev-hero h1 .gradient-text {
-  background: linear-gradient(135deg, #0ea5e9, #06d6a0);
+  background: linear-gradient(135deg, #dc2626, #f43f5e);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -285,7 +285,7 @@ a:hover { text-decoration: underline; }
 
 .dev-tag.stable { background: rgba(34,197,94,0.15); color: #22c55e; }
 .dev-tag.beta { background: rgba(245,158,11,0.15); color: #f59e0b; }
-.dev-tag.new { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.dev-tag.new { background: rgba(14,165,233,0.15); color: #dc2626; }
 
 /* === Code Blocks === */
 .dev-code-block {
@@ -388,7 +388,7 @@ a:hover { text-decoration: underline; }
   text-transform: uppercase;
 }
 .method-badge.get { background: rgba(34,197,94,0.15); color: #22c55e; }
-.method-badge.post { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.method-badge.post { background: rgba(14,165,233,0.15); color: #dc2626; }
 .method-badge.put { background: rgba(245,158,11,0.15); color: #f59e0b; }
 .method-badge.delete { background: rgba(239,68,68,0.15); color: #ef4444; }
 

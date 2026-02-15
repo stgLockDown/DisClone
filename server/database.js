@@ -56,12 +56,12 @@ function initializeDatabase() {
       password_hash TEXT NOT NULL,
       avatar TEXT DEFAULT NULL,
       avatar_emoji TEXT DEFAULT NULL,
-      color TEXT DEFAULT '#0ea5e9',
+      color TEXT DEFAULT '#dc2626',
       initials TEXT DEFAULT '',
       status TEXT DEFAULT 'online' CHECK(status IN ('online','idle','dnd','invisible','offline')),
       custom_status TEXT DEFAULT '',
       about TEXT DEFAULT 'Hey there! I''m using Nexus Chat.',
-      banner_color TEXT DEFAULT '#0ea5e9',
+      banner_color TEXT DEFAULT '#dc2626',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -318,7 +318,7 @@ function seedDefaultData() {
       roles: [
         { id: 'role-admin-hq', name: 'Admin', color: '#f87171', position: 3 },
         { id: 'role-mod-hq', name: 'Moderator', color: '#a78bfa', position: 2 },
-        { id: 'role-member-hq', name: 'Member', color: '#0ea5e9', position: 1 },
+        { id: 'role-member-hq', name: 'Member', color: '#dc2626', position: 1 },
       ],
       members: ['u-alex', 'u-maya', 'u-jordan', 'u-sam', 'u-riley', 'u-casey', 'u-drew', 'u-avery', 'u-taylor'],
       memberRoles: {
@@ -373,7 +373,7 @@ function seedDefaultData() {
       ],
       roles: [
         { id: 'role-admin-m', name: 'Admin', color: '#14b8a6', position: 2 },
-        { id: 'role-member-m', name: 'Member', color: '#0ea5e9', position: 1 },
+        { id: 'role-member-m', name: 'Member', color: '#dc2626', position: 1 },
       ],
       members: ['u-avery', 'u-maya', 'u-taylor', 'u-casey'],
       memberRoles: { 'u-avery': ['role-admin-m'], 'u-maya': ['role-member-m'], 'u-taylor': ['role-member-m'], 'u-casey': ['role-member-m'] }
@@ -396,7 +396,7 @@ function seedDefaultData() {
       ],
       roles: [
         { id: 'role-admin-d', name: 'Admin', color: '#8b5cf6', position: 2 },
-        { id: 'role-member-d', name: 'Member', color: '#0ea5e9', position: 1 },
+        { id: 'role-member-d', name: 'Member', color: '#dc2626', position: 1 },
       ],
       members: ['u-drew', 'u-alex', 'u-maya', 'u-jordan', 'u-sam'],
       memberRoles: { 'u-drew': ['role-admin-d'], 'u-alex': ['role-member-d'], 'u-maya': ['role-member-d'], 'u-jordan': ['role-member-d'], 'u-sam': ['role-member-d'] }
@@ -415,7 +415,7 @@ function seedDefaultData() {
       ],
       roles: [
         { id: 'role-admin-a', name: 'Admin', color: '#f59e0b', position: 2 },
-        { id: 'role-member-a', name: 'Member', color: '#0ea5e9', position: 1 },
+        { id: 'role-member-a', name: 'Member', color: '#dc2626', position: 1 },
       ],
       members: ['u-riley', 'u-maya', 'u-casey', 'u-taylor'],
       memberRoles: { 'u-riley': ['role-admin-a'], 'u-maya': ['role-member-a'], 'u-casey': ['role-member-a'], 'u-taylor': ['role-member-a'] }

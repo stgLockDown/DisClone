@@ -10,7 +10,7 @@ const currentUser = {
   name: '',
   tag: '',
   avatar: null,
-  color: '#0ea5e9',
+  color: '#dc2626',
   initials: '',
   status: 'online',
   about: '',
@@ -269,29 +269,69 @@ function renderChannelList(server) {
   container.innerHTML = '';
 
   if (activeServer === 'home') {
-    // DM list
-    const dmHeader = document.createElement('div');
-    dmHeader.style.cssText = 'padding:12px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-secondary);';
-    dmHeader.textContent = 'Direct Messages';
-    container.appendChild(dmHeader);
-
-    // Search DMs
+    // Search bar
     const searchDiv = document.createElement('div');
-    searchDiv.style.cssText = 'padding:0 8px 8px 8px;';
-    searchDiv.innerHTML = '<input class="form-input" style="padding:6px 10px;font-size:13px;" placeholder="Find or start a conversation">';
+    searchDiv.className = 'dm-search-bar';
+    searchDiv.innerHTML = '<input class="dm-search-input" placeholder="Find or start a conversation" onclick="if(typeof showFriendsPage===\'function\') showFriendsPage()">';
     container.appendChild(searchDiv);
 
-    const dmChannels = server.channels['dm'] || [];
-    dmChannels.forEach(ch => {
-      const item = createChannelItem(ch);
-      container.appendChild(item);
-    });
+    // Nav items: Friends
+    const friendsNav = document.createElement('div');
+    friendsNav.className = 'dm-nav-item' + (typeof NexusFriends !== 'undefined' && document.getElementById('friendsPage')?.classList.contains('visible') ? ' active' : '');
+    friendsNav.onclick = () => { if (typeof showFriendsPage === 'function') showFriendsPage(); };
+    const pendingCount = typeof NexusFriends !== 'undefined' ? NexusFriends.getIncoming().length : 0;
+    friendsNav.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      <span>Friends</span>
+      ${pendingCount > 0 ? `<span class="dm-nav-badge">${pendingCount}</span>` : ''}
+    `;
+    container.appendChild(friendsNav);
 
-    // Nexus Pro banner
-    const banner = document.createElement('div');
-    banner.className = 'nexus-pro-banner';
-    banner.innerHTML = '<h4>✨ Nexus Pro</h4><p>Get custom profiles, bigger uploads, and more!</p>';
-    container.appendChild(banner);
+    // DM header with + button
+    const dmHeader = document.createElement('div');
+    dmHeader.className = 'dm-section-header';
+    dmHeader.innerHTML = `
+      <span>DIRECT MESSAGES</span>
+      <button class="dm-add-btn" onclick="event.stopPropagation(); if(typeof showFriendsPage==='function'){showFriendsPage(); if(typeof switchFriendsTab==='function') switchFriendsTab('add');}" title="Create DM">+</button>
+    `;
+    container.appendChild(dmHeader);
+
+    // DM channels list
+    const dmChannels = server.channels['dm'] || [];
+    if (dmChannels.length > 0) {
+      dmChannels.forEach(ch => {
+        const item = document.createElement('div');
+        item.className = 'dm-item' + (ch.id === activeChannel ? ' active' : '');
+        item.dataset.channelId = ch.id;
+        item.onclick = () => { hideFriendsPage(); switchChannel(ch.id); };
+
+        const u = users[ch.userId] || {};
+        const name = ch.name || u.name || 'Unknown';
+        const status = u.status || 'offline';
+        const color = u.color || '#dc2626';
+        const initials = u.initials || name[0]?.toUpperCase() || '?';
+        const unread = ch.unreadCount || 0;
+
+        item.innerHTML = `
+          <div class="dm-avatar" style="background:${color}">
+            ${u.avatar ? `<img src="${u.avatar}" alt="">` : initials}
+            <div class="status-dot ${status}"></div>
+          </div>
+          <div class="dm-info">
+            <div class="dm-name">${name}</div>
+            <div class="dm-status">${u.customStatus || status}</div>
+          </div>
+          ${unread > 0 ? `<span class="dm-unread-badge">${unread}</span>` : ''}
+          <button class="dm-close-btn" onclick="event.stopPropagation(); closeDM('${ch.id}')" title="Close DM">×</button>
+        `;
+        container.appendChild(item);
+      });
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'dm-empty';
+      empty.textContent = 'No conversations yet';
+      container.appendChild(empty);
+    }
     return;
   }
 
@@ -385,7 +425,7 @@ function createVoiceChannelItem(ch) {
       vu.className = 'voice-user' + (isSelf ? ' self' : '');
       vu.dataset.userId = userId;
       vu.innerHTML = `
-        <div class="voice-user-avatar" style="background:${u.color || '#0ea5e9'}">${u.initials || u.displayName?.[0] || '?'}</div>
+        <div class="voice-user-avatar" style="background:${u.color || '#dc2626'}">${u.initials || u.displayName?.[0] || '?'}</div>
         <span>${u.name || u.displayName || u.display_name || 'User'}</span>
         <div class="voice-user-icons">${isMuted ? '🔇' : '🎤'}</div>
       `;
@@ -435,6 +475,19 @@ function switchChannel(channelId) {
   // Close pinned panel
   pinnedVisible = false;
   document.getElementById('pinnedPanel').classList.remove('visible');
+}
+
+function closeDM(channelId) {
+  const homeServer = servers['home'];
+  if (!homeServer) return;
+  const dmChannels = homeServer.channels['dm'] || [];
+  const idx = dmChannels.findIndex(ch => ch.id === channelId);
+  if (idx !== -1) dmChannels.splice(idx, 1);
+  if (activeChannel === channelId) {
+    activeChannel = null;
+    if (typeof showFriendsPage === 'function') showFriendsPage();
+  }
+  renderChannelList(homeServer);
 }
 
 function findChannel(channelId) {
@@ -711,28 +764,53 @@ function renderMembers() {
   const container = document.getElementById('membersList');
   container.innerHTML = '';
 
-  const onlineUsers = Object.values(users).filter(u => u.status === 'online' && u.id !== 'u-self');
-  const idleUsers = Object.values(users).filter(u => u.status === 'idle');
-  const dndUsers = Object.values(users).filter(u => u.status === 'dnd');
-  const offlineUsers = Object.values(users).filter(u => u.status === 'offline');
+  // Get members for the current server from the users object
+  // Filter to only show members of the active server
+  const serverMembers = Object.values(users).filter(u => u.id && u.id !== currentUser.id);
+  
+  const onlineMembers = serverMembers.filter(u => u.status === 'online');
+  const idleMembers = serverMembers.filter(u => u.status === 'idle');
+  const dndMembers = serverMembers.filter(u => u.status === 'dnd');
+  const offlineMembers = serverMembers.filter(u => u.status === 'offline' || !u.status);
+
+  // Invite button at top
+  if (activeServer && activeServer !== 'home') {
+    const inviteDiv = document.createElement('div');
+    inviteDiv.className = 'members-invite-btn';
+    inviteDiv.onclick = () => showInviteModal(activeServer);
+    inviteDiv.innerHTML = `<span>👥</span> Invite People`;
+    container.appendChild(inviteDiv);
+  }
 
   // Current user first
-  container.innerHTML += `<div class="members-category">You — 1</div>`;
+  const youLabel = document.createElement('div');
+  youLabel.className = 'members-category';
+  youLabel.textContent = 'You — 1';
+  container.appendChild(youLabel);
   container.appendChild(createMemberItem(currentUser));
 
-  if (onlineUsers.length > 0) {
-    container.innerHTML += `<div class="members-category">Online — ${onlineUsers.length}</div>`;
-    onlineUsers.forEach(u => container.appendChild(createMemberItem(u)));
+  if (onlineMembers.length > 0) {
+    const label = document.createElement('div');
+    label.className = 'members-category';
+    label.textContent = `Online — ${onlineMembers.length}`;
+    container.appendChild(label);
+    onlineMembers.forEach(u => container.appendChild(createMemberItem(u)));
   }
 
-  if (idleUsers.length > 0) {
-    container.innerHTML += `<div class="members-category">Idle — ${idleUsers.length}</div>`;
-    idleUsers.forEach(u => container.appendChild(createMemberItem(u)));
+  if (idleMembers.length > 0) {
+    const label = document.createElement('div');
+    label.className = 'members-category';
+    label.textContent = `Idle — ${idleMembers.length}`;
+    container.appendChild(label);
+    idleMembers.forEach(u => container.appendChild(createMemberItem(u)));
   }
 
-  if (dndUsers.length > 0) {
-    container.innerHTML += `<div class="members-category">Do Not Disturb — ${dndUsers.length}</div>`;
-    dndUsers.forEach(u => container.appendChild(createMemberItem(u)));
+  if (dndMembers.length > 0) {
+    const label = document.createElement('div');
+    label.className = 'members-category';
+    label.textContent = `Do Not Disturb — ${dndMembers.length}`;
+    container.appendChild(label);
+    dndMembers.forEach(u => container.appendChild(createMemberItem(u)));
   }
 
   if (offlineUsers.length > 0) {
@@ -1300,7 +1378,7 @@ function renderSettingsContent(section) {
             <div style="flex:1;">
               <div class="form-group"><label class="form-label">Display Name</label><input class="form-input" value="NexusUser"></div>
               <div class="form-group"><label class="form-label">About Me</label><textarea class="form-input" rows="3" style="resize:vertical;">Building cool things with Nexus Chat!</textarea></div>
-              <div class="form-group"><label class="form-label">Banner Color</label><div style="display:flex;gap:8px;"><div style="width:32px;height:32px;border-radius:50%;background:var(--nexus-primary);cursor:pointer;border:2px solid var(--text-primary);"></div><div style="width:32px;height:32px;border-radius:50%;background:#06d6a0;cursor:pointer;"></div><div style="width:32px;height:32px;border-radius:50%;background:#f87171;cursor:pointer;"></div><div style="width:32px;height:32px;border-radius:50%;background:#a78bfa;cursor:pointer;"></div><div style="width:32px;height:32px;border-radius:50%;background:#f59e0b;cursor:pointer;"></div></div></div>
+              <div class="form-group"><label class="form-label">Banner Color</label><div style="display:flex;gap:8px;"><div style="width:32px;height:32px;border-radius:50%;background:var(--nexus-primary);cursor:pointer;border:2px solid var(--text-primary);"></div><div style="width:32px;height:32px;border-radius:50%;background:#f43f5e;cursor:pointer;"></div><div style="width:32px;height:32px;border-radius:50%;background:#f87171;cursor:pointer;"></div><div style="width:32px;height:32px;border-radius:50%;background:#a78bfa;cursor:pointer;"></div><div style="width:32px;height:32px;border-radius:50%;background:#f59e0b;cursor:pointer;"></div></div></div>
             </div>
             <div style="width:260px;">
               <div style="background:var(--bg-floating);border-radius:12px;overflow:hidden;">
@@ -1403,6 +1481,84 @@ function createServer() {
   setupTooltips();
 
   showToast(`Space "${name}" created! 🎉`);
+}
+
+// ============ TOAST NOTIFICATIONS ============
+
+// ============ INVITE SYSTEM ============
+
+async function showInviteModal(serverId) {
+  openModal('inviteModal');
+  const linkInput = document.getElementById('inviteLinkInput');
+  const statusDiv = document.getElementById('inviteStatus');
+  linkInput.value = 'Generating invite...';
+  statusDiv.innerHTML = '';
+
+  if (typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    try {
+      const result = await NexusAPI.createInvite(serverId);
+      if (result.success) {
+        const baseUrl = window.location.origin;
+        linkInput.value = `${baseUrl}/invite/${result.invite.code}`;
+        statusDiv.innerHTML = `<span style="color:var(--nexus-success)">✓ Invite created! Share this link with friends.</span>`;
+      } else {
+        linkInput.value = '';
+        statusDiv.innerHTML = `<span style="color:var(--nexus-danger)">${result.error || 'Failed to create invite'}</span>`;
+      }
+    } catch (err) {
+      linkInput.value = '';
+      statusDiv.innerHTML = `<span style="color:var(--nexus-danger)">Error creating invite</span>`;
+    }
+  }
+}
+
+function copyInviteLink() {
+  const input = document.getElementById('inviteLinkInput');
+  if (input.value && !input.value.startsWith('Generating')) {
+    navigator.clipboard.writeText(input.value).then(() => {
+      showToast('Invite link copied! 📋');
+    }).catch(() => {
+      input.select();
+      document.execCommand('copy');
+      showToast('Invite link copied! 📋');
+    });
+  }
+}
+
+async function joinServerViaInvite() {
+  const input = document.getElementById('joinInviteCode');
+  const resultDiv = document.getElementById('joinServerResult');
+  let code = input.value.trim();
+  if (!code) return;
+
+  // Extract code from URL if full URL pasted
+  const urlMatch = code.match(/invite\/([A-Za-z0-9]+)/);
+  if (urlMatch) code = urlMatch[1];
+
+  if (typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    try {
+      resultDiv.innerHTML = '<span style="color:var(--text-muted)">Joining...</span>';
+      const result = await NexusAPI.joinViaInvite(code);
+      if (result.success) {
+        resultDiv.innerHTML = `<span style="color:var(--nexus-success)">✓ ${result.message}</span>`;
+        showToast(`Joined ${result.serverName}! 🎉`);
+        closeModal('joinServerModal');
+        input.value = '';
+        // Reload servers
+        if (typeof NexusBackend !== 'undefined') {
+          const serversResult = await NexusAPI.getServers();
+          if (serversResult.success) {
+            // Refresh server list
+            location.reload();
+          }
+        }
+      } else {
+        resultDiv.innerHTML = `<span style="color:var(--nexus-danger)">${result.error || 'Failed to join'}</span>`;
+      }
+    } catch (err) {
+      resultDiv.innerHTML = `<span style="color:var(--nexus-danger)">Error joining server</span>`;
+    }
+  }
 }
 
 // ============ TOAST NOTIFICATIONS ============
@@ -2970,7 +3126,7 @@ function editRole(roleId) {
   const role = managed.getRole(roleId);
   if (!role) return;
 
-  const colors = ['#f87171','#ef4444','#f59e0b','#eab308','#22c55e','#06d6a0','#14b8a6','#0ea5e9','#3b82f6','#6366f1','#8b5cf6','#a78bfa','#d946ef','#ec4899','#99aab5','#fff'];
+  const colors = ['#f87171','#ef4444','#f59e0b','#eab308','#22c55e','#f43f5e','#14b8a6','#dc2626','#3b82f6','#6366f1','#8b5cf6','#a78bfa','#d946ef','#ec4899','#99aab5','#fff'];
 
   const area = document.getElementById('roleEditorArea');
   area.innerHTML = `
@@ -3183,7 +3339,7 @@ function renderWPViewers(party) {
       <div class="wp-viewer-item">
         <div class="wp-viewer-avatar" style="background:${u.color}">${u.initials}</div>
         <div class="wp-viewer-name">${u.name}</div>
-        ${uid === party.hostId ? '<span class="wp-viewer-badge" style="background:rgba(14,165,233,0.15);color:#0ea5e9;">Host</span>' : ''}
+        ${uid === party.hostId ? '<span class="wp-viewer-badge" style="background:rgba(14,165,233,0.15);color:#dc2626;">Host</span>' : ''}
       </div>`;
   });
 }
@@ -3202,7 +3358,7 @@ function appendWPChatMsg(msg) {
   const container = document.getElementById('wpChatArea');
   const el = document.createElement('div');
   el.className = 'wp-chat-msg';
-  el.innerHTML = `<span class="wp-chat-user" style="color:${msg.color || '#0ea5e9'}">${msg.userName}</span>${msg.message}`;
+  el.innerHTML = `<span class="wp-chat-user" style="color:${msg.color || '#dc2626'}">${msg.userName}</span>${msg.message}`;
   container.appendChild(el);
   container.scrollTop = container.scrollHeight;
   while (container.children.length > 100) container.removeChild(container.firstChild);
@@ -3228,9 +3384,9 @@ function simulateWPChat(partyId) {
 
 // ============ CONSOLE ============
 
-console.log('%c🌟 Nexus Chat', 'font-size:24px;font-weight:800;color:#0ea5e9;');
+console.log('%c🌟 Nexus Chat', 'font-size:24px;font-weight:800;color:#dc2626;');
 console.log('%cA modern real-time communication platform', 'font-size:12px;color:#8b95a8;');
-console.log('%c🔌 Developer SDK available: NexusSDK', 'font-size:12px;color:#06d6a0;');
+console.log('%c🔌 Developer SDK available: NexusSDK', 'font-size:12px;color:#f43f5e;');
 console.log('%c📺 Twitch Integration: NexusTwitch', 'font-size:12px;color:#9146FF;');
 console.log('%c📖 Open dev-portal.html for documentation', 'font-size:12px;color:#8b95a8;');
 

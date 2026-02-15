@@ -41,7 +41,7 @@
 .auth-bg::before {
   width: 600px;
   height: 600px;
-  background: #0ea5e9;
+  background: #dc2626;
   top: -200px;
   left: -100px;
 }
@@ -92,7 +92,7 @@
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #0ea5e9, #06d6a0);
+  background: linear-gradient(135deg, #dc2626, #f43f5e);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -150,7 +150,7 @@
 
 .auth-tab.active {
   background: rgba(14, 165, 233, 0.2);
-  color: #0ea5e9;
+  color: #dc2626;
   box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
 }
 
@@ -199,7 +199,7 @@
 }
 
 .auth-input:focus {
-  border-color: #0ea5e9;
+  border-color: #dc2626;
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
 }
 
@@ -258,8 +258,8 @@
 }
 
 .auth-remember input:checked + .auth-checkbox {
-  background: #0ea5e9;
-  border-color: #0ea5e9;
+  background: #dc2626;
+  border-color: #dc2626;
   box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
 }
 
@@ -284,7 +284,7 @@
   padding: 13px 24px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0ea5e9, #06d6a0);
+  background: linear-gradient(135deg, #dc2626, #f43f5e);
   color: #fff;
   font-size: 15px;
   font-weight: 700;
@@ -361,7 +361,7 @@
 }
 
 .auth-footer a {
-  color: #0ea5e9;
+  color: #dc2626;
   text-decoration: none;
   font-weight: 600;
   cursor: pointer;
@@ -388,7 +388,7 @@
 
 .password-strength-bar.weak { background: #f87171; }
 .password-strength-bar.medium { background: #f59e0b; }
-.password-strength-bar.strong { background: #06d6a0; }
+.password-strength-bar.strong { background: #22c55e; }
 
 /* Responsive */
 @media (max-width: 520px) {

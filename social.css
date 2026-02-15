@@ -46,7 +46,7 @@
 
 .auth-bg-animation .orb:nth-child(3) {
   width: 250px; height: 250px;
-  background: #06d6a0;
+  background: #f43f5e;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   animation-delay: -5s;
@@ -82,7 +82,7 @@
 
 .auth-logo {
   width: 64px; height: 64px;
-  background: linear-gradient(135deg, var(--nexus-primary), #06d6a0);
+  background: linear-gradient(135deg, var(--nexus-primary), #f43f5e);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -1258,7 +1258,7 @@
   border-radius: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #06d6a0;
+  color: #f43f5e;
   margin-left: 8px;
 }
 
@@ -1275,7 +1275,7 @@
   background: rgba(6,214,160,0.08);
   border-bottom: 1px solid rgba(6,214,160,0.15);
   font-size: 12px;
-  color: #06d6a0;
+  color: #f43f5e;
   flex-shrink: 0;
 }
 
@@ -1362,7 +1362,7 @@
 .enc-status-title {
   font-size: 16px;
   font-weight: 700;
-  color: #06d6a0;
+  color: #f43f5e;
   margin-bottom: 4px;
 }
 
@@ -1410,7 +1410,7 @@
   background: rgba(6,214,160,0.15);
   border: 1px solid rgba(6,214,160,0.3);
   border-radius: 8px;
-  color: #06d6a0;
+  color: #f43f5e;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1428,7 +1428,7 @@
   display: inline-flex;
   align-items: center;
   margin-left: 4px;
-  color: #06d6a0;
+  color: #f43f5e;
   font-size: 12px;
   opacity: 0.7;
 }

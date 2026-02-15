@@ -46,7 +46,7 @@ router.post('/', requireAuth, async (req, res) => {
     const adminRoleId = 'role-' + uuidv4().slice(0, 8);
     const memberRoleId = 'role-' + uuidv4().slice(0, 8);
     await dbRun('INSERT INTO roles (id, server_id, name, color, position) VALUES (?, ?, ?, ?, ?)', adminRoleId, serverId, 'Admin', '#f87171', 2);
-    await dbRun('INSERT INTO roles (id, server_id, name, color, position) VALUES (?, ?, ?, ?, ?)', memberRoleId, serverId, 'Member', '#0ea5e9', 1);
+    await dbRun('INSERT INTO roles (id, server_id, name, color, position) VALUES (?, ?, ?, ?, ?)', memberRoleId, serverId, 'Member', '#dc2626', 1);
     await dbRun('INSERT INTO member_roles (server_id, user_id, role_id) VALUES (?, ?, ?)', serverId, req.user.id, adminRoleId);
 
     // Create General category
@@ -354,6 +354,158 @@ function formatServer(s) {
 function formatChannel(ch) {
   return { id: ch.id, serverId: ch.server_id, categoryId: ch.category_id, name: ch.name, type: ch.type, topic: ch.topic, icon: ch.icon, position: ch.position, isDm: !!ch.is_dm };
 }
+
+// ============ INVITE SYSTEM ============
+
+// Generate a random invite code
+function generateInviteCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+// POST /api/servers/:id/invites — Create an invite
+router.post('/:id/invites', requireAuth, async (req, res) => {
+  try {
+    const serverId = req.params.id;
+    const membership = await dbGet('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?', serverId, req.user.id);
+    if (!membership) return res.status(403).json({ success: false, error: 'Not a member of this server' });
+
+    const { maxUses = 0, expiresIn = null } = req.body; // expiresIn in hours, 0 = never
+    const inviteId = 'inv-' + uuidv4().slice(0, 8);
+    const code = generateInviteCode();
+    const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 3600000).toISOString() : null;
+
+    await dbRun(
+      'INSERT INTO invites (id, code, server_id, creator_id, max_uses, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
+      inviteId, code, serverId, req.user.id, maxUses, expiresAt
+    );
+
+    const server = await dbGet('SELECT name, icon, icon_emoji FROM servers WHERE id = ?', serverId);
+
+    res.json({
+      success: true,
+      invite: {
+        id: inviteId,
+        code,
+        serverId,
+        serverName: server?.name,
+        serverIcon: server?.icon,
+        serverEmoji: server?.icon_emoji,
+        maxUses,
+        uses: 0,
+        expiresAt,
+        createdBy: req.user.id
+      }
+    });
+  } catch (err) {
+    console.error('[Servers] Create invite error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// GET /api/servers/:id/invites — List invites for a server
+router.get('/:id/invites', requireAuth, async (req, res) => {
+  try {
+    const serverId = req.params.id;
+    const membership = await dbGet('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?', serverId, req.user.id);
+    if (!membership) return res.status(403).json({ success: false, error: 'Not a member' });
+
+    const invites = await dbAll(`
+      SELECT i.*, u.display_name as creator_name, u.username as creator_username
+      FROM invites i JOIN users u ON u.id = i.creator_id
+      WHERE i.server_id = ? ORDER BY i.created_at DESC
+    `, serverId);
+
+    res.json({ success: true, invites });
+  } catch (err) {
+    console.error('[Servers] List invites error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// GET /api/invites/:code — Get invite info (public)
+router.get('/invite/:code', async (req, res) => {
+  try {
+    const invite = await dbGet(`
+      SELECT i.*, s.name as server_name, s.icon as server_icon, s.icon_emoji as server_emoji, s.description as server_description,
+             (SELECT COUNT(*) FROM server_members WHERE server_id = s.id) as member_count
+      FROM invites i JOIN servers s ON s.id = i.server_id
+      WHERE i.code = ?
+    `, req.params.code);
+
+    if (!invite) return res.status(404).json({ success: false, error: 'Invalid or expired invite' });
+
+    // Check expiry
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+      return res.status(410).json({ success: false, error: 'This invite has expired' });
+    }
+
+    // Check max uses
+    if (invite.max_uses > 0 && invite.uses >= invite.max_uses) {
+      return res.status(410).json({ success: false, error: 'This invite has reached its max uses' });
+    }
+
+    res.json({
+      success: true,
+      invite: {
+        code: invite.code,
+        serverName: invite.server_name,
+        serverIcon: invite.server_icon,
+        serverEmoji: invite.server_emoji,
+        serverDescription: invite.server_description,
+        memberCount: invite.member_count,
+        serverId: invite.server_id
+      }
+    });
+  } catch (err) {
+    console.error('[Servers] Get invite error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// POST /api/invites/:code/join — Join a server via invite
+router.post('/invite/:code/join', requireAuth, async (req, res) => {
+  try {
+    const invite = await dbGet(`
+      SELECT i.*, s.name as server_name FROM invites i JOIN servers s ON s.id = i.server_id WHERE i.code = ?
+    `, req.params.code);
+
+    if (!invite) return res.status(404).json({ success: false, error: 'Invalid invite code' });
+
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+      return res.status(410).json({ success: false, error: 'This invite has expired' });
+    }
+
+    if (invite.max_uses > 0 && invite.uses >= invite.max_uses) {
+      return res.status(410).json({ success: false, error: 'This invite has reached its max uses' });
+    }
+
+    // Check if already a member
+    const existing = await dbGet('SELECT * FROM server_members WHERE server_id = ? AND user_id = ?', invite.server_id, req.user.id);
+    if (existing) {
+      return res.json({ success: true, message: 'Already a member', serverId: invite.server_id, serverName: invite.server_name });
+    }
+
+    // Join the server
+    await dbRun('INSERT INTO server_members (server_id, user_id) VALUES (?, ?)', invite.server_id, req.user.id);
+
+    // Assign Member role
+    const memberRole = await dbGet("SELECT id FROM roles WHERE server_id = ? AND name = 'Member' ORDER BY position ASC LIMIT 1", invite.server_id);
+    if (memberRole) {
+      await dbRun('INSERT INTO member_roles (server_id, user_id, role_id) VALUES (?, ?, ?) ON CONFLICT DO NOTHING', invite.server_id, req.user.id, memberRole.id);
+    }
+
+    // Increment uses
+    await dbRun('UPDATE invites SET uses = uses + 1 WHERE id = ?', invite.id);
+
+    res.json({ success: true, message: `Joined ${invite.server_name}!`, serverId: invite.server_id, serverName: invite.server_name });
+  } catch (err) {
+    console.error('[Servers] Join via invite error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 
 module.exports = router;
 module.exports.formatServer = formatServer;

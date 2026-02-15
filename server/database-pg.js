@@ -27,12 +27,12 @@ async function initializeDatabase() {
         password_hash TEXT NOT NULL,
         avatar TEXT DEFAULT NULL,
         avatar_emoji TEXT DEFAULT NULL,
-        color TEXT DEFAULT '#0ea5e9',
+        color TEXT DEFAULT '#dc2626',
         initials TEXT DEFAULT '',
         status TEXT DEFAULT 'online',
         custom_status TEXT DEFAULT '',
         about TEXT DEFAULT 'Hey there! I''m using Nexus Chat.',
-        banner_color TEXT DEFAULT '#0ea5e9',
+        banner_color TEXT DEFAULT '#dc2626',
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       )
@@ -180,6 +180,22 @@ async function initializeDatabase() {
     `);
 
     // Indexes
+    // Invites table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS invites (
+        id TEXT PRIMARY KEY,
+        code TEXT UNIQUE NOT NULL,
+        server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+        creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        max_uses INTEGER DEFAULT 0,
+        uses INTEGER DEFAULT 0,
+        expires_at TIMESTAMP DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(code)`);
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_invites_server ON invites(server_id)`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id, created_at DESC)`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id)`);
     await db.query(`CREATE INDEX IF NOT EXISTS idx_server_members_user ON server_members(user_id)`);

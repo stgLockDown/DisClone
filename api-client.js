@@ -172,6 +172,24 @@ const NexusAPI = (() => {
     return get('/servers/' + serverId + '/members');
   }
 
+  // ============ INVITES ============
+
+  async function createInvite(serverId, options = {}) {
+    return post('/servers/' + serverId + '/invites', options);
+  }
+
+  async function getInvites(serverId) {
+    return get('/servers/' + serverId + '/invites');
+  }
+
+  async function getInviteInfo(code) {
+    return get('/servers/invite/' + code);
+  }
+
+  async function joinViaInvite(code) {
+    return post('/servers/invite/' + code + '/join');
+  }
+
   // ============ MESSAGES ============
 
   async function getMessages(channelId, opts = {}) {
@@ -487,6 +505,10 @@ const NexusAPI = (() => {
     updateChannel,
     deleteChannel,
     getServerMembers,
+    createInvite,
+    getInvites,
+    getInviteInfo,
+    joinViaInvite,
 
     // Messages
     getMessages,
