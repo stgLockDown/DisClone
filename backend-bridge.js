@@ -43,6 +43,13 @@ const NexusBackend = (() => {
       rebuildServersData(serversResult.servers);
     }
 
+    // Load existing DMs into home server
+    try {
+      await loadDMs();
+    } catch (e) {
+      console.warn('[Backend] Could not load DMs:', e);
+    }
+
     // Setup WebSocket event handlers
     setupRealtimeHandlers();
   }
@@ -319,12 +326,31 @@ const NexusBackend = (() => {
     if (window.servers && window.servers['home']) {
       window.servers['home'].channels['dm'] = result.dms.map(dm => ({
         id: dm.id,
-        name: dm.user ? dm.user.displayName : 'Unknown',
+        name: dm.user ? (dm.user.displayName || dm.user.username) : 'Unknown',
         type: 'dm',
         icon: '💬',
-        _userId: dm.user?.id,
+        userId: dm.user?.id,
         _backendId: dm.id
       }));
+
+      // Cache user data for DM participants
+      if (window.users) {
+        result.dms.forEach(dm => {
+          if (dm.user) {
+            window.users[dm.user.id] = {
+              id: dm.user.id,
+              name: dm.user.displayName || dm.user.username || 'User',
+              username: dm.user.username,
+              initials: (dm.user.displayName || dm.user.username || 'U')[0].toUpperCase(),
+              color: dm.user.avatarColor || dm.user.color || '#dc2626',
+              avatar: dm.user.avatar || null,
+              status: dm.user.status || 'offline',
+              customStatus: dm.user.customStatus || '',
+              ...(window.users[dm.user.id] || {})
+            };
+          }
+        });
+      }
     }
 
     return result.dms;
@@ -337,7 +363,41 @@ const NexusBackend = (() => {
     // Subscribe to the DM channel
     NexusAPI.subscribeChannel(result.channel.id);
 
-    return result.channel;
+    // Add to local home server DM list so findChannel() and sidebar work
+    const homeServer = window.servers?.['home'];
+    if (homeServer) {
+      if (!homeServer.channels['dm']) homeServer.channels['dm'] = [];
+      const dmList = homeServer.channels['dm'];
+      const existing = dmList.find(ch => ch.id === result.channel.id);
+      if (!existing) {
+        const user = result.channel.user || {};
+        dmList.push({
+          id: result.channel.id,
+          name: user.displayName || user.username || 'DM',
+          type: 'dm',
+          icon: '💬',
+          userId: targetUserId
+        });
+      }
+    }
+
+    // Cache the target user info
+    if (result.channel.user && window.users) {
+      const u = result.channel.user;
+      window.users[targetUserId] = {
+        id: targetUserId,
+        name: u.displayName || u.username || 'User',
+        username: u.username,
+        initials: (u.displayName || u.username || 'U')[0].toUpperCase(),
+        color: u.avatarColor || '#dc2626',
+        avatar: u.avatar || null,
+        status: u.status || 'offline',
+        customStatus: u.customStatus || '',
+        ...(window.users[targetUserId] || {})
+      };
+    }
+
+    return { success: true, channel: result.channel };
   }
 
   // ============ REALTIME HANDLERS ============

@@ -303,7 +303,29 @@ function renderChannelList(server) {
         const item = document.createElement('div');
         item.className = 'dm-item' + (ch.id === activeChannel ? ' active' : '');
         item.dataset.channelId = ch.id;
-        item.onclick = () => { hideFriendsPage(); switchChannel(ch.id); };
+        item.onclick = async () => {
+          hideFriendsPage();
+          
+          // Make sure chat UI is visible
+          const chatHeader = document.querySelector('.chat-header');
+          const messageInputContainer = document.querySelector('.message-input-container');
+          if (chatHeader) chatHeader.style.display = '';
+          if (messageInputContainer) messageInputContainer.style.display = '';
+
+          // Load messages from backend if not cached
+          if (typeof NexusBackend !== 'undefined' && NexusBackend.loadMessages) {
+            if (!channelMessages[ch.id] || channelMessages[ch.id].length === 0) {
+              try {
+                await NexusBackend.loadMessages(ch.id);
+              } catch(e) {
+                console.warn('[DM] Could not load messages:', e);
+              }
+            }
+          }
+          if (!channelMessages[ch.id]) channelMessages[ch.id] = [];
+
+          switchChannel(ch.id);
+        };
 
         const u = users[ch.userId] || {};
         const name = ch.name || u.name || 'Unknown';
@@ -451,23 +473,55 @@ function switchChannel(channelId) {
     el.classList.toggle('active', isThis);
   });
 
+  // Also update DM item active state
+  document.querySelectorAll('.dm-item').forEach(el => {
+    const isThis = el.dataset.channelId === channelId;
+    el.classList.toggle('active', isThis);
+  });
+
   // Find channel data
   const ch = findChannel(channelId);
-  if (!ch) return;
+  if (!ch) {
+    console.warn('[switchChannel] Channel not found:', channelId);
+    return;
+  }
+
+  const isDM = ch.type === 'dm' || channelId.startsWith('dm-');
 
   // Update header
-  document.getElementById('chatHeaderIcon').textContent = ch.icon || '#';
-  document.getElementById('chatHeaderName').textContent = ch.name;
-  document.getElementById('chatHeaderTopic').textContent = ch.topic || '';
+  if (isDM) {
+    const dmUser = ch.userId ? (users[ch.userId] || {}) : {};
+    const dmName = dmUser.name || ch.name || 'Direct Message';
+    document.getElementById('chatHeaderIcon').textContent = '💬';
+    document.getElementById('chatHeaderName').textContent = dmName;
+    document.getElementById('chatHeaderTopic').textContent = '';
+    document.getElementById('messageInput').placeholder = `Message @${dmName}`;
+  } else {
+    document.getElementById('chatHeaderIcon').textContent = ch.icon || '#';
+    document.getElementById('chatHeaderName').textContent = ch.name;
+    document.getElementById('chatHeaderTopic').textContent = ch.topic || '';
+    document.getElementById('messageInput').placeholder = `Message #${ch.name}`;
+  }
 
   // Update welcome
   const welcome = document.getElementById('channelWelcome');
-  welcome.querySelector('.channel-welcome-icon').textContent = ch.icon || '#';
-  welcome.querySelector('h1').textContent = `Welcome to #${ch.name}`;
-  welcome.querySelector('p').textContent = `This is the start of the #${ch.name} channel. ${ch.topic || ''}`;
+  if (isDM) {
+    const dmUser = ch.userId ? (users[ch.userId] || {}) : {};
+    const dmName = dmUser.name || ch.name || 'Direct Message';
+    welcome.querySelector('.channel-welcome-icon').textContent = '💬';
+    welcome.querySelector('h1').textContent = dmName;
+    welcome.querySelector('p').textContent = `This is the beginning of your direct message history with ${dmName}.`;
+  } else {
+    welcome.querySelector('.channel-welcome-icon').textContent = ch.icon || '#';
+    welcome.querySelector('h1').textContent = `Welcome to #${ch.name}`;
+    welcome.querySelector('p').textContent = `This is the start of the #${ch.name} channel. ${ch.topic || ''}`;
+  }
 
-  // Update input placeholder
-  document.getElementById('messageInput').placeholder = `Message #${ch.name}`;
+  // Make sure chat area is visible
+  const chatHeader = document.querySelector('.chat-header');
+  const messageInputContainer = document.querySelector('.message-input-container');
+  if (chatHeader) chatHeader.style.display = '';
+  if (messageInputContainer) messageInputContainer.style.display = '';
 
   // Render messages
   renderMessages();

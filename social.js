@@ -1289,9 +1289,55 @@ async function openDMFromFriend(userId) {
     try {
       const result = await NexusBackend.openDM(userId);
       if (result && result.success && result.channel) {
+        const channelId = result.channel.id;
+
+        // Hide friends page and switch to home/DM view
         hideFriendsPage();
-        if (typeof switchServer === 'function') switchServer('home');
-        if (typeof switchChannel === 'function') switchChannel(result.channel.id);
+
+        // Make sure we're on home server
+        if (typeof activeServer !== 'undefined') activeServer = 'home';
+
+        // Re-render the home sidebar to show the new DM
+        const homeServer = typeof servers !== 'undefined' ? servers['home'] : null;
+        if (homeServer && typeof renderChannelList === 'function') {
+          renderChannelList(homeServer);
+        }
+
+        // Load messages for this DM channel
+        if (typeof NexusBackend !== 'undefined' && NexusBackend.loadMessages) {
+          try {
+            const messages = await NexusBackend.loadMessages(channelId);
+            if (typeof channelMessages !== 'undefined') {
+              channelMessages[channelId] = messages || [];
+            }
+          } catch (e) {
+            console.warn('[Social] Could not load DM messages:', e);
+            if (typeof channelMessages !== 'undefined') {
+              channelMessages[channelId] = [];
+            }
+          }
+        }
+
+        // Now switch to the channel (it exists in local data now)
+        if (typeof switchChannel === 'function') switchChannel(channelId);
+
+        // Update UI elements for DM style
+        const chatHeaderIcon = document.getElementById('chatHeaderIcon');
+        const chatHeaderName = document.getElementById('chatHeaderName');
+        const chatHeaderTopic = document.getElementById('chatHeaderTopic');
+        const msgInput = document.getElementById('messageInput');
+        const userName = u?.name || result.channel.user?.displayName || 'User';
+        if (chatHeaderIcon) chatHeaderIcon.textContent = '💬';
+        if (chatHeaderName) chatHeaderName.textContent = userName;
+        if (chatHeaderTopic) chatHeaderTopic.textContent = '';
+        if (msgInput) msgInput.placeholder = `Message @${userName}`;
+
+        // Make sure chat area is visible
+        const chatHeader = document.querySelector('.chat-header');
+        const messageInputContainer = document.querySelector('.message-input-container');
+        if (chatHeader) chatHeader.style.display = '';
+        if (messageInputContainer) messageInputContainer.style.display = '';
+
         return;
       }
     } catch (err) {
@@ -1303,23 +1349,41 @@ async function openDMFromFriend(userId) {
   if (!u) return;
   const homeServer = servers['home'];
   if (!homeServer) return;
-  const dmChannels = homeServer?.channels?.['dm'] || [];
-  let dmChannel = dmChannels.find(ch => ch.id === 'dm-' + userId.replace('u-', ''));
+  if (!homeServer.channels['dm']) homeServer.channels['dm'] = [];
+  const dmChannels = homeServer.channels['dm'];
+  let dmChannel = dmChannels.find(ch => ch.userId === userId || ch.id === 'dm-' + userId.replace('u-', ''));
 
   if (!dmChannel) {
     dmChannel = {
       id: 'dm-' + userId.replace('u-', ''),
       name: u.name || 'DM',
       type: 'dm',
-      icon: '💬'
+      icon: '💬',
+      userId: userId
     };
-    if (!homeServer.channels['dm']) homeServer.channels['dm'] = [];
-    homeServer.channels['dm'].push(dmChannel);
+    dmChannels.push(dmChannel);
   }
 
   hideFriendsPage();
-  if (typeof switchServer === 'function') switchServer('home');
+  activeServer = 'home';
+  if (typeof renderChannelList === 'function') renderChannelList(homeServer);
+
+  // Initialize empty messages if needed
+  if (typeof channelMessages !== 'undefined' && !channelMessages[dmChannel.id]) {
+    channelMessages[dmChannel.id] = [];
+  }
+
   if (typeof switchChannel === 'function') switchChannel(dmChannel.id);
+
+  // Update header for DM
+  const chatHeaderIcon = document.getElementById('chatHeaderIcon');
+  const chatHeaderName = document.getElementById('chatHeaderName');
+  const chatHeaderTopic = document.getElementById('chatHeaderTopic');
+  const msgInput = document.getElementById('messageInput');
+  if (chatHeaderIcon) chatHeaderIcon.textContent = '💬';
+  if (chatHeaderName) chatHeaderName.textContent = u.name || 'User';
+  if (chatHeaderTopic) chatHeaderTopic.textContent = '';
+  if (msgInput) msgInput.placeholder = `Message @${u.name || 'User'}`;
 }
 
 function startCallFromFriend(userId, type) {
