@@ -17,7 +17,7 @@ const NexusBackend = (() => {
   // ============ INITIALIZATION ============
 
   async function init() {
-    if (initialized) return;
+    if (initialized) return { authenticated: true };
 
     console.log('[Backend] Initializing...');
 

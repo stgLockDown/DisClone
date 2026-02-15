@@ -1623,7 +1623,8 @@ async function createServer() {
       const result = await NexusAPI.createServer({ name });
       if (result.success) {
         const srv = result.server;
-        const serverId = srv.id;
+        // Use same ID mapping as rebuildServersData for consistency
+        const serverId = srv.id.replace(/^srv-/, '');
         const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
         // Build channels structure from backend response
@@ -1642,11 +1643,11 @@ async function createServer() {
         }
         if (Object.keys(channelsObj).length === 0) {
           channelsObj['Text Channels'] = [
-            { id: serverId + '-general', name: 'general', type: 'text', icon: '#', topic: `Welcome to ${name}!` }
+            { id: srv.id + '-general', name: 'general', type: 'text', icon: '#', topic: `Welcome to ${name}!` }
           ];
         }
 
-        servers[serverId] = { name: name, channels: channelsObj };
+        servers[serverId] = { _backendId: srv.id, name: name, channels: channelsObj };
 
         // Add server icon to nav
         const nav = document.getElementById('serverNav');
@@ -1689,7 +1690,9 @@ async function showInviteModal(serverId) {
 
   if (typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
     try {
-      const result = await NexusAPI.createInvite(serverId);
+      // Resolve backend ID from frontend server ID
+      const backendId = (servers[serverId] && servers[serverId]._backendId) ? servers[serverId]._backendId : (serverId.startsWith('srv-') ? serverId : 'srv-' + serverId);
+      const result = await NexusAPI.createInvite(backendId);
       if (result.success) {
         const baseUrl = window.location.origin;
         linkInput.value = `${baseUrl}/invite/${result.invite.code}`;
