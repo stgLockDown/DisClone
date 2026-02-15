@@ -236,64 +236,6 @@ router.delete('/messages/:id/reactions/:emoji', requireAuth, async (req, res) =>
   }
 });
 
-// ============ PATCH /api/channels/:id — Update channel ============
-router.patch('/channels/:id', requireAuth, async (req, res) => {
-  try {
-    const channelId = req.params.id;
-    const channel = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
-    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    // Check if user is server owner or has manage channels permission
-    if (channel.server_id) {
-      const server = await dbGet('SELECT * FROM servers WHERE id = ?', channel.server_id);
-      if (!server || server.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, error: 'Only the server owner can edit channels' });
-      }
-    }
-
-    const { name, topic, icon } = req.body;
-    const updates = [];
-    const params = [];
-    if (name !== undefined) { updates.push('name = ?'); params.push(name); }
-    if (topic !== undefined) { updates.push('topic = ?'); params.push(topic); }
-    if (icon !== undefined) { updates.push('icon = ?'); params.push(icon); }
-
-    if (updates.length === 0) return res.status(400).json({ success: false, error: 'No fields to update' });
-
-    params.push(channelId);
-    await dbRun(`UPDATE channels SET ${updates.join(', ')} WHERE id = ?`, ...params);
-
-    const updated = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
-    res.json({ success: true, channel: { id: updated.id, name: updated.name, type: updated.type, topic: updated.topic, icon: updated.icon } });
-  } catch (err) {
-    console.error('[Channels] Update error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
-
-// ============ DELETE /api/channels/:id — Delete channel ============
-router.delete('/channels/:id', requireAuth, async (req, res) => {
-  try {
-    const channelId = req.params.id;
-    const channel = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
-    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
-
-    // Check if user is server owner
-    if (channel.server_id) {
-      const server = await dbGet('SELECT * FROM servers WHERE id = ?', channel.server_id);
-      if (!server || server.owner_id !== req.user.id) {
-        return res.status(403).json({ success: false, error: 'Only the server owner can delete channels' });
-      }
-    }
-
-    await dbRun('DELETE FROM channels WHERE id = ?', channelId);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('[Channels] Delete error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
-});
-
 function formatMessage(m, reactionsMap) {
   return {
     id: m.id, channelId: m.channel_id, userId: m.user_id, content: m.content,
