@@ -16,14 +16,14 @@
       const id = 'wp-' + (++this._idCounter) + '-' + Date.now().toString(36);
       const party = {
         id,
-        hostId: config.hostId || 'u-self',
+        hostId: config.hostId || 'unknown',
         hostName: config.hostName || 'NexusUser',
         channelId: config.channelId || null,
         title: config.title || 'Watch Party',
         description: config.description || '',
         source: config.source || null,       // { type: 'twitch'|'youtube'|'screen', id: '...' }
         status: 'waiting',                    // waiting, playing, paused, ended
-        viewers: [config.hostId || 'u-self'],
+        viewers: [config.hostId || 'unknown'],
         maxViewers: config.maxViewers || 50,
         isPrivate: config.isPrivate || false,
         chat: [],

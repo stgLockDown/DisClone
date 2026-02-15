@@ -119,7 +119,7 @@
       this.icon = config.icon || null;
       this.initials = config.initials || this.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
       this.color = config.color || '#0ea5e9';
-      this.ownerId = config.ownerId || 'u-self';
+      this.ownerId = config.ownerId || (typeof currentUser !== 'undefined' && currentUser.id) || 'unknown';
       this.description = config.description || '';
       this.isPublic = config.isPublic || false;
       this.verificationLevel = config.verificationLevel || 'none'; // none, low, medium, high
@@ -369,7 +369,7 @@
         id: 'audit-' + Date.now(),
         action,
         details,
-        userId: 'u-self',
+        userId: (typeof currentUser !== 'undefined' && currentUser.id) || 'unknown',
         timestamp: Date.now()
       });
       if (this.auditLog.length > 100) this.auditLog = this.auditLog.slice(-100);
@@ -425,7 +425,7 @@
       const server = new ManagedServer(config);
 
       // Add owner as member with admin
-      server.addMember(config.ownerId || 'u-self', []);
+      server.addMember(config.ownerId || (typeof currentUser !== 'undefined' && currentUser.id) || 'unknown', []);
 
       if (template) {
         this._applyTemplate(server, template);
@@ -437,7 +437,7 @@
       // Add all existing users as members
       if (typeof users !== 'undefined') {
         Object.keys(users).forEach(uid => {
-          if (uid !== (config.ownerId || 'u-self')) {
+          if (uid !== (config.ownerId || (typeof currentUser !== 'undefined' && currentUser.id) || 'unknown')) {
             server.addMember(uid, []);
           }
         });

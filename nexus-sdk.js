@@ -454,7 +454,7 @@
       const streamId = `stream-${Date.now()}`;
       const stream = {
         id: streamId,
-        userId: config.userId || 'u-self',
+        userId: config.userId || 'unknown',
         channelId: config.channelId,
         type: config.type || 'screen', // screen, window, camera
         quality: config.quality || 'auto', // auto, 720p, 1080p, source
@@ -530,7 +530,7 @@
         id: serverId,
         name: config.name,
         icon: config.icon || null,
-        ownerId: config.ownerId || 'u-self',
+        ownerId: config.ownerId || 'unknown',
         channels: config.channels || [
           { name: 'general', type: 'text' },
           { name: 'General Voice', type: 'voice' }

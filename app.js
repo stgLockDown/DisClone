@@ -2007,7 +2007,7 @@ async function startScreenStream() {
     if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
     channelMessages[activeChannel].push({
       id: genMsgId(),
-      userId: (currentUser.id || 'u-self'),
+      userId: (currentUser.id || 'unknown'),
       content: '',
       timestamp: new Date(),
       isSystem: true,
@@ -2302,7 +2302,7 @@ function processSlashCommand(content) {
   const args = parts.slice(1).join(' ');
 
   if (typeof NexusSDK !== 'undefined') {
-    NexusSDK.commands.execute(cmdName, { args, channelId: activeChannel, userId: (currentUser.id || 'u-self') })
+    NexusSDK.commands.execute(cmdName, { args, channelId: activeChannel, userId: (currentUser.id || 'unknown') })
       .then(result => {
         if (result.success && result.result) {
           if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
@@ -2327,7 +2327,7 @@ function processSlashCommand(content) {
 // Process bot prefix commands
 function processBotCommands(content, msg) {
   if (typeof NexusSDK !== 'undefined') {
-    NexusSDK.bots.processMessage({ content, userId: (currentUser.id || 'u-self'), channelId: activeChannel })
+    NexusSDK.bots.processMessage({ content, userId: (currentUser.id || 'unknown'), channelId: activeChannel })
       .then(response => {
         if (response) {
           if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
@@ -2767,7 +2767,7 @@ function shareTwitchStream() {
     if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
     channelMessages[activeChannel].push({
       id: genMsgId(),
-      userId: (currentUser.id || 'u-self'),
+      userId: (currentUser.id || 'unknown'),
       content: shareText,
       timestamp: new Date(),
       reactions: []
@@ -3001,7 +3001,7 @@ function finalizeServerCreation() {
   closeWizard();
 
   if (typeof NexusServerManager !== 'undefined') {
-    const managed = NexusServerManager.create({ name, ownerId: (currentUser.id || 'u-self') }, wizardTemplate);
+    const managed = NexusServerManager.create({ name, ownerId: (currentUser.id || 'unknown') }, wizardTemplate);
 
     // Convert to app server format
     const sidebarData = managed.toSidebarData();
@@ -3434,7 +3434,7 @@ function startWatchParty() {
   closeModal('watchPartyModal');
 
   const party = NexusWatchParty.create({
-    hostId: (currentUser.id || 'u-self'),
+    hostId: (currentUser.id || 'unknown'),
     hostName: currentUser.name,
     title: name,
     source: { type: wpSourceType, url },
@@ -3491,7 +3491,7 @@ function showWatchPartyUI(party) {
 
 function leaveWatchParty() {
   if (activeWatchParty) {
-    NexusWatchParty.leave(activeWatchParty.id, (currentUser.id || 'u-self'));
+    NexusWatchParty.leave(activeWatchParty.id, (currentUser.id || 'unknown'));
     activeWatchParty = null;
   }
   document.getElementById('watchPartyContainer').classList.remove('active');
@@ -3537,7 +3537,7 @@ function sendWPChat() {
   const msg = input.value.trim();
   if (!msg || !activeWatchParty) return;
 
-  NexusWatchParty.sendChat(activeWatchParty.id, (currentUser.id || 'u-self'), currentUser.name, msg);
+  NexusWatchParty.sendChat(activeWatchParty.id, (currentUser.id || 'unknown'), currentUser.name, msg);
   appendWPChatMsg({ userName: currentUser.name, message: msg, color: currentUser.color });
   input.value = '';
 }
@@ -3554,7 +3554,7 @@ function appendWPChatMsg(msg) {
 
 function sendWPReaction(emoji) {
   if (!activeWatchParty) return;
-  NexusWatchParty.addReaction(activeWatchParty.id, emoji, (currentUser.id || 'u-self'));
+  NexusWatchParty.addReaction(activeWatchParty.id, emoji, (currentUser.id || 'unknown'));
 
   // Float the emoji
   const container = document.getElementById('wpFloatingReactions');
@@ -3615,7 +3615,7 @@ console.log('%c📖 Open dev-portal.html for documentation', 'font-size:12px;col
             if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
             channelMessages[activeChannel].push({
               id: 'msg-sdk-' + Date.now(),
-              userId: (currentUser.id || 'u-self'),
+              userId: (currentUser.id || 'unknown'),
               content: result,
               timestamp: new Date().toISOString(),
               reactions: [],
@@ -3653,7 +3653,7 @@ console.log('%c📖 Open dev-portal.html for documentation', 'font-size:12px;col
       if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
       channelMessages[activeChannel].push({
         id: 'msg-local-' + Date.now(),
-        userId: (currentUser.id || 'u-self'),
+        userId: (currentUser.id || 'unknown'),
         content: content,
         timestamp: new Date().toISOString(),
         reactions: []

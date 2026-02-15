@@ -1185,7 +1185,7 @@ function renderBlockedItem(blocked) {
 
 function getQuickAddSuggestions() {
   const friendIds = NexusFriends.getFriends().map(f => f.userId);
-  const selfId = currentUser.id || currentUser._authId || 'u-self';
+  const selfId = currentUser.id || currentUser._authId || 'unknown';
   const suggestions = Object.values(users).filter(u => u.id && u.id !== selfId && !u.isBot && !friendIds.includes(u.id));
 
   if (suggestions.length === 0) {
@@ -1914,7 +1914,7 @@ function openEncryptionPanel(channelId) {
     otherUser = users[otherUserId];
   }
 
-  const fingerprint = otherUserId ? NexusEncryption.getFingerprint('u-self', otherUserId) : '';
+  const fingerprint = otherUserId ? NexusEncryption.getFingerprint(currentUser.id || 'unknown', otherUserId) : '';
 
   panel = document.createElement('div');
   panel.className = 'encryption-panel visible';

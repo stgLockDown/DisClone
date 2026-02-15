@@ -277,7 +277,7 @@ function sendMessage() {
 
   const msg = {
     id: ++msgIdCounter,
-    userId: 'u-self',
+    userId: (typeof currentUser !== 'undefined' && currentUser.id) || 'unknown',
     content: content,
     timestamp: Date.now()
   };
