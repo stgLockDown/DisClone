@@ -4,7 +4,9 @@
 // All route handlers should use these helpers
 // ============================================
 
-const DATABASE_TYPE = process.env.DATABASE_TYPE || 'sqlite';
+// Auto-detect PostgreSQL if DATABASE_URL or POSTGRES_* env vars are present (Railway)
+const DATABASE_TYPE = process.env.DATABASE_TYPE || 
+  (process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL || process.env.POSTGRES_URL || process.env.PGHOST ? 'postgres' : 'sqlite');
 
 let pool = null;
 let sqliteDb = null;
@@ -120,7 +122,7 @@ async function dbGet(sql, ...params) {
     const result = await pool.query(toPg(sql), params);
     return result.rows[0] || null;
   } else {
-    return sqliteDb.prepare(sql).get(...params);
+    const db = getRawDB(); return db.prepare(sql).get(...params);
   }
 }
 
@@ -130,7 +132,7 @@ async function dbAll(sql, ...params) {
     const result = await pool.query(toPg(sql), params);
     return result.rows;
   } else {
-    return sqliteDb.prepare(sql).all(...params);
+    const db = getRawDB(); return db.prepare(sql).all(...params);
   }
 }
 
@@ -140,7 +142,7 @@ async function dbRun(sql, ...params) {
     const result = await pool.query(toPg(sql), params);
     return { changes: result.rowCount };
   } else {
-    return sqliteDb.prepare(sql).run(...params);
+    const db = getRawDB(); return db.prepare(sql).run(...params);
   }
 }
 
@@ -149,7 +151,7 @@ async function dbExec(sql) {
   if (isPostgres()) {
     return pool.query(sql);
   } else {
-    return sqliteDb.exec(sql);
+    const db = getRawDB(); return db.exec(sql);
   }
 }
 

@@ -303,12 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Simulate incoming call after 45 seconds for demo
-  setTimeout(() => {
-    if (!callState.active) {
-      simulateIncomingCall();
-    }
-  }, 45000);
+  // Incoming calls are handled via WebSocket signaling — no simulation
 });
 
 function enhanceDMSystem() {
@@ -410,9 +405,23 @@ function startCall(channelId, type) {
     return;
   }
 
-  const userId = channelId.replace('dm-', 'u-');
-  const user = users[userId];
-  if (!user) return;
+  // Find the DM target user from the channel's user list or DM metadata
+  let user = null;
+  const dmChannels = (typeof servers !== 'undefined' && servers['home']) ? (servers['home'].channels['dm'] || []) : [];
+  const dmCh = dmChannels.find(ch => ch.id === channelId);
+  if (dmCh && dmCh._targetUserId) {
+    user = users[dmCh._targetUserId];
+  }
+  if (!user) {
+    // Fallback: try to find user from channel messages
+    const msgs = (typeof channelMessages !== 'undefined' && channelMessages[channelId]) || [];
+    const otherMsg = msgs.find(m => m.userId !== (currentUser.id || currentUser._authId));
+    if (otherMsg) user = users[otherMsg.userId];
+  }
+  if (!user) {
+    showToast('Could not find call target', 'error');
+    return;
+  }
 
   callState.targetUser = user;
   callState.type = type;
@@ -450,24 +459,21 @@ function showOutgoingCall(user, type) {
   `;
   document.body.appendChild(overlay);
 
-  // Simulate answer after 2-4 seconds
-  setTimeout(() => {
+  // Call will be connected when the remote user answers via WebSocket signaling
+  // For now, show a timeout if no answer after 30 seconds
+  callState._ringTimeout = setTimeout(() => {
     const el = document.getElementById('callOverlay');
     if (el) {
       el.remove();
-      connectCall(user, type, 'outgoing');
+      showToast('No answer', 'error');
+      callState.active = false;
     }
-  }, 2000 + Math.random() * 2000);
+  }, 30000);
 }
 
 function simulateIncomingCall() {
-  // Pick a random online user
-  const onlineUsers = Object.values(users).filter(u => u.status === 'online' && u.id !== 'u-self' && !u.isBot);
-  if (onlineUsers.length === 0) return;
-  const caller = onlineUsers[Math.floor(Math.random() * onlineUsers.length)];
-  const type = Math.random() > 0.5 ? 'video' : 'voice';
-
-  showIncomingCall(caller, type);
+  // Disabled — incoming calls are handled via WebSocket signaling
+  return;
 }
 
 function showIncomingCall(user, type) {
@@ -510,7 +516,7 @@ function showIncomingCall(user, type) {
     const el = document.getElementById('callOverlay');
     if (el && !callState.active) {
       el.remove();
-      addCallHistoryEntry('dm-' + user.id.replace('u-', ''), {
+      addCallHistoryEntry(typeof activeChannel !== 'undefined' ? activeChannel : 'dm-call', {
         type, direction: 'incoming', status: 'missed', duration: null,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
@@ -532,7 +538,7 @@ function declineCall(userId) {
   const overlay = document.getElementById('callOverlay');
   if (overlay) overlay.remove();
   if (user) {
-    addCallHistoryEntry('dm-' + userId.replace('u-', ''), {
+    addCallHistoryEntry(typeof activeChannel !== 'undefined' ? activeChannel : 'dm-call', {
       type: 'voice', direction: 'incoming', status: 'declined', duration: null,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
@@ -565,7 +571,7 @@ function connectCall(user, type, direction) {
   startSpeakingSimulation();
 
   // Add to call history
-  const dmId = 'dm-' + user.id.replace('u-', '');
+  const dmId = typeof activeChannel !== 'undefined' ? activeChannel : 'dm-call';
   addCallHistoryEntry(dmId, {
     type, direction, status: 'completed', duration: '0:00',
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -683,15 +689,9 @@ function startCallTimer() {
 }
 
 function startSpeakingSimulation() {
-  if (callState.speakingInterval) clearInterval(callState.speakingInterval);
-  callState.speakingInterval = setInterval(() => {
-    if (!callState.active) return;
-    const remoteAvatar = document.getElementById('remoteCallAvatar');
-    if (remoteAvatar) {
-      const speaking = Math.random() > 0.5;
-      remoteAvatar.classList.toggle('speaking', speaking);
-    }
-  }, 2000);
+  // Speaking indicators should be driven by actual audio level detection
+  // via WebRTC audio tracks, not random simulation
+  return;
 }
 
 // ============ CALL CONTROLS ============
@@ -823,7 +823,7 @@ function endCall() {
 
   // Update call history with final duration
   if (user) {
-    const dmId = 'dm-' + user.id.replace('u-', '');
+    const dmId = typeof activeChannel !== 'undefined' ? activeChannel : 'dm-call';
     if (callHistory[dmId]) {
       const liveEntry = callHistory[dmId].find(e => e._live);
       if (liveEntry) {

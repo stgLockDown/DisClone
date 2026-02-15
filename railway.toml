@@ -6,3 +6,6 @@ healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
+
+[variables]
+DATABASE_TYPE = "postgres"

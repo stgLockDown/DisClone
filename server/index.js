@@ -18,7 +18,10 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 
 // Load appropriate database module based on DATABASE_TYPE
-const DATABASE_TYPE = process.env.DATABASE_TYPE || 'sqlite';
+// Auto-detect PostgreSQL if DATABASE_URL or POSTGRES_* env vars are present (Railway)
+const DATABASE_TYPE = process.env.DATABASE_TYPE || 
+  (process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL || process.env.POSTGRES_URL || process.env.PGHOST ? 'postgres' : 'sqlite');
+process.env.DATABASE_TYPE = DATABASE_TYPE; // propagate to db.js
 const dbModule = DATABASE_TYPE === 'postgres' 
   ? require('./database-pg') 
   : require('./database');
@@ -152,7 +155,7 @@ app.get('/api/health', (req, res) => {
     version: '3.4.0',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    database: process.env.DATABASE_TYPE || 'sqlite',
+    database: DATABASE_TYPE,
     env: process.env.NODE_ENV || 'development',
     port: process.env.PORT || 8080,
   });
@@ -209,7 +212,7 @@ async function start() {
     process.stdout.write('[Server] Starting Nexus Chat...\n');
     process.stdout.write('[Server] Node version: ' + process.version + '\n');
     process.stdout.write('[Server] Environment: ' + (process.env.NODE_ENV || 'development') + '\n');
-    process.stdout.write('[Server] Database type: ' + (process.env.DATABASE_TYPE || 'sqlite') + '\n');
+    process.stdout.write('[Server] Database type: ' + DATABASE_TYPE + '\n');
     process.stdout.write('[Server] PORT: ' + PORT + '\n');
     
     // Start HTTP server FIRST so Railway can connect
@@ -255,7 +258,7 @@ async function start() {
     process.stdout.write('  NEXUS CHAT v3.3.0\n');
     process.stdout.write('  ' + (process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT') + '\n');
     process.stdout.write('  http://0.0.0.0:' + PORT + '\n');
-    process.stdout.write('  DB: ' + (process.env.DATABASE_TYPE || 'sqlite') + '\n');
+    process.stdout.write('  DB: ' + DATABASE_TYPE + '\n');
     process.stdout.write('========================================\n\n');
   } catch (err) {
     process.stdout.write('[Server] FATAL ERROR during startup: ' + err.message + '\n');

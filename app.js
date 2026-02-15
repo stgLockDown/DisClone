@@ -37,11 +37,23 @@ function generateTimestamp(hoursAgo) {
   return d;
 }
 
+// Ensure any timestamp (ISO string, number, or Date) becomes a valid Date object
+function ensureDate(val) {
+  if (val instanceof Date) return val;
+  if (typeof val === 'string' || typeof val === 'number') {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return new Date(); // fallback to now
+}
+
 function formatTime(date) {
+  date = ensureDate(date);
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDate(date) {
+  date = ensureDate(date);
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -52,6 +64,7 @@ function formatDate(date) {
 }
 
 function formatFullTimestamp(date) {
+  date = ensureDate(date);
   return `${formatDate(date)} at ${formatTime(date)}`;
 }
 
@@ -401,7 +414,7 @@ function createChannelItem(ch) {
   item.onclick = () => switchChannel(ch.id);
 
   let badgeHtml = ch.badge ? `<span class="channel-badge">${ch.badge}</span>` : '';
-  let unreadDot = (!ch.badge && Math.random() > 0.7) ? '<span class="unread-dot"></span>' : '';
+  let unreadDot = ch.unread ? '<span class="unread-dot"></span>' : '';
 
   item.innerHTML = `
     <span class="channel-icon">${ch.icon}</span>
@@ -600,11 +613,11 @@ function renderMessages() {
     } else {
       user = users[msg.userId] || { name: 'Unknown', initials: '?', color: '#666', roleClass: '' };
     }
-    // Map current user's backend ID to 'u-self' display
-    if (typeof currentUser !== 'undefined' && currentUser._authId && msg.userId === currentUser._authId) {
-      user = users['u-self'] || currentUser;
+    // Map current user's backend ID to currentUser display
+    if (typeof currentUser !== 'undefined' && currentUser.id && msg.userId === currentUser.id) {
+      user = { name: currentUser.name, initials: currentUser.initials, color: currentUser.color, status: currentUser.status, avatar: currentUser.avatar, avatarEmoji: currentUser.avatarEmoji, roleClass: '', id: currentUser.id, tag: currentUser.tag, about: currentUser.about };
     }
-    const timeDiff = lastTimestamp ? (msg.timestamp - lastTimestamp) / 60000 : 999;
+    const timeDiff = lastTimestamp ? (ensureDate(msg.timestamp).getTime() - ensureDate(lastTimestamp).getTime()) / 60000 : 999;
     const showAvatar = msg.userId !== lastUserId || timeDiff > 5;
 
     const msgEl = document.createElement('div');
@@ -706,6 +719,15 @@ function findMsgById(msgId) {
   return messages.find(m => m.id === msgId);
 }
 
+// ============ SCROLL HELPER ============
+
+function scrollToBottom() {
+  const scroller = document.getElementById('messagesScroller');
+  if (scroller) {
+    scroller.scrollTop = scroller.scrollHeight;
+  }
+}
+
 // ============ SENDING MESSAGES ============
 
 function handleInputKeydown(e) {
@@ -715,7 +737,7 @@ function handleInputKeydown(e) {
   }
 }
 
-function sendMessage() {
+async function sendMessage() {
   const input = document.getElementById('messageInput');
   const content = input.value.trim();
   if (!content) return;
@@ -729,43 +751,47 @@ function sendMessage() {
     return;
   }
 
-  if (!channelMessages[activeChannel]) {
-    channelMessages[activeChannel] = [];
-  }
-
-  const msg = {
-    id: genMsgId(),
-    userId: 'u-self',
-    content: content,
-    timestamp: new Date(),
-    reactions: [],
-    replyTo: replyingTo
-  };
-
-  channelMessages[activeChannel].push(msg);
+  // Clear input immediately for responsiveness
   input.value = '';
   input.style.height = 'auto';
   cancelReply();
-  renderMessages();
 
-  // Emit event for SDK
-  if (typeof NexusSDK !== 'undefined') {
-    NexusSDK.events.emit('message:send', msg);
+  // Send via backend
+  if (typeof NexusBackend !== 'undefined') {
+    try {
+      const msg = await NexusBackend.sendMessage(activeChannel, content);
+      if (msg) {
+        renderMessages();
+        scrollToBottom();
+      } else {
+        showToast('Failed to send message', 'error');
+      }
+    } catch (err) {
+      console.error('sendMessage error:', err);
+      showToast('Failed to send message', 'error');
+    }
   }
-
-  // Process bot prefix commands (e.g., !greet)
-  processBotCommands(content, msg);
-
-  // Messages are sent via backend — no local simulation
 }
 
 // ============ REACTIONS ============
 
-function toggleReaction(msgId, reactionIdx) {
+async function toggleReaction(msgId, reactionIdx) {
   const messages = channelMessages[activeChannel] || [];
   const msg = messages.find(m => m.id === msgId);
   if (!msg || !msg.reactions[reactionIdx]) return;
 
+  const emoji = msg.reactions[reactionIdx].emoji;
+
+  // Use backend API
+  if (typeof NexusBackend !== 'undefined') {
+    try {
+      await NexusBackend.toggleReaction(msgId, emoji, activeChannel);
+    } catch (err) {
+      console.error('toggleReaction error:', err);
+    }
+  }
+
+  // Optimistic local update
   const reaction = msg.reactions[reactionIdx];
   reaction.active = !reaction.active;
   reaction.count += reaction.active ? 1 : -1;
@@ -775,7 +801,7 @@ function toggleReaction(msgId, reactionIdx) {
   renderMessages();
 }
 
-function addQuickReaction(msgId) {
+async function addQuickReaction(msgId) {
   const emojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👀', '🎉'];
   const emoji = emojis[Math.floor(Math.random() * emojis.length)];
 
@@ -783,6 +809,16 @@ function addQuickReaction(msgId) {
   const msg = messages.find(m => m.id === msgId);
   if (!msg) return;
 
+  // Use backend API
+  if (typeof NexusBackend !== 'undefined') {
+    try {
+      await NexusBackend.toggleReaction(msgId, emoji, activeChannel);
+    } catch (err) {
+      console.error('addQuickReaction error:', err);
+    }
+  }
+
+  // Optimistic local update
   const existing = msg.reactions.find(r => r.emoji === emoji);
   if (existing) {
     existing.count++;
@@ -825,12 +861,12 @@ function renderMembers() {
   if (serverData && serverData.members) {
     // Use actual server members from backend
     serverMembers = serverData.members
-      .filter(m => m.id !== currentUser.id)
+      .filter(m => m.id !== (currentUser._authId || currentUser.id))
       .map(m => users[m.id] || m);
   } else {
     // Fallback: filter users but exclude bots
     serverMembers = Object.values(users).filter(u => 
-      u.id && u.id !== currentUser.id && !u.id.startsWith('bot-') && !u.isBot
+      u.id && u.id !== currentUser.id && u.id !== (currentUser._authId || currentUser.id) && !u.id.startsWith('bot-') && !u.isBot
     );
   }
   
@@ -879,9 +915,9 @@ function renderMembers() {
     dndMembers.forEach(u => container.appendChild(createMemberItem(u)));
   }
 
-  if (offlineUsers.length > 0) {
-    container.innerHTML += `<div class="members-category">Offline — ${offlineUsers.length}</div>`;
-    offlineUsers.forEach(u => {
+  if (offlineMembers.length > 0) {
+    container.innerHTML += `<div class="members-category">Offline — ${offlineMembers.length}</div>`;
+    offlineMembers.forEach(u => {
       const el = createMemberItem(u);
       el.classList.add('offline');
       container.appendChild(el);
@@ -1147,7 +1183,7 @@ function handleContextAction(action, msg) {
       startReply(msg.id);
       break;
     case 'edit':
-      if (msg.userId === 'u-self' || msg.userId === (currentUser._authId || '')) {
+      if (msg.userId === currentUser.id || msg.userId === (currentUser._authId || '')) {
         const newContent = prompt('Edit message:', msg.content);
         if (newContent !== null && newContent.trim()) {
           if (typeof editMessageBackend === 'function') {
@@ -1161,13 +1197,13 @@ function handleContextAction(action, msg) {
       }
       break;
     case 'pin':
-      alert('Message pinned! 📌');
+      showToast('Message pinned! 📌');
       break;
     case 'react':
       addQuickReaction(msg.id);
       break;
     case 'thread':
-      alert('Thread created! 🧵');
+      showToast('Threads coming soon! 🧵');
       break;
     case 'copy':
       navigator.clipboard.writeText(msg.content).then(() => {
@@ -1180,7 +1216,7 @@ function handleContextAction(action, msg) {
       });
       break;
     case 'delete':
-      if (msg.userId === 'u-self' || msg.userId === (currentUser._authId || '') || confirm('Are you sure you want to delete this message?')) {
+      if (msg.userId === currentUser.id || msg.userId === (currentUser._authId || '') || confirm('Are you sure you want to delete this message?')) {
         if (typeof deleteMessageBackend === 'function') {
           deleteMessageBackend(msg.id);
         } else {
@@ -1225,6 +1261,35 @@ function showUserPopup(user, event) {
       rolesEl.innerHTML += `<div class="role-tag"><span class="role-dot" style="background:${role.color}"></span> ${role.name}</div>`;
     });
   }
+
+  // Setup message input handler for DMs
+  msgInput.value = '';
+  msgInput.onkeydown = async (e) => {
+    if (e.key === 'Enter' && msgInput.value.trim()) {
+      const content = msgInput.value.trim();
+      msgInput.value = '';
+      popup.classList.remove('visible');
+      // Open DM with this user and send message
+      if (typeof NexusBackend !== 'undefined' && user.id) {
+        try {
+          const result = await NexusBackend.openDM(user.id);
+          if (result && result.success && result.channel) {
+            switchServer('home');
+            switchChannel(result.channel.id);
+            // Send the message after switching
+            setTimeout(async () => {
+              await NexusBackend.sendMessage(result.channel.id, content);
+              renderMessages();
+              scrollToBottom();
+            }, 300);
+          }
+        } catch (err) {
+          console.error('DM send error:', err);
+          showToast('Failed to send DM', 'error');
+        }
+      }
+    }
+  };
 
   popup.classList.add('visible');
 
@@ -1287,15 +1352,17 @@ function populateEmojiPicker() {
 }
 
 function filterEmojis(query) {
-  // Simple filter - just show/hide based on position (real app would use emoji names)
   const items = document.querySelectorAll('.emoji-item');
   if (!query) {
     items.forEach(item => item.style.display = '');
     return;
   }
-  // For demo, just show first 32 when searching
-  items.forEach((item, i) => {
-    item.style.display = i < 32 ? '' : 'none';
+  const q = query.toLowerCase();
+  items.forEach(item => {
+    const emoji = item.textContent.trim();
+    const title = (item.title || item.dataset.name || '').toLowerCase();
+    // Show if the title/name contains the query, or if query matches the emoji itself
+    item.style.display = (title.includes(q) || emoji.includes(q)) ? '' : 'none';
   });
 }
 
@@ -1353,20 +1420,30 @@ function handleSearch(e) {
 
 // ============ FILE UPLOAD ============
 
-function handleFileUpload(event) {
+async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  // Simulate file upload message
-  if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
-  channelMessages[activeChannel].push({
-    id: genMsgId(),
-    userId: 'u-self',
-    content: `📎 Uploaded: **${file.name}** (${(file.size / 1024).toFixed(1)} KB)`,
-    timestamp: new Date(),
-    reactions: []
-  });
-  renderMessages();
+  // Upload via backend API if available
+  if (typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    try {
+      showToast('Uploading file...');
+      const content = `📎 Uploaded: **${file.name}** (${(file.size / 1024).toFixed(1)} KB)`;
+      // Send as a message with file attachment info
+      if (typeof NexusBackend !== 'undefined') {
+        const msg = await NexusBackend.sendMessage(activeChannel, content);
+        if (msg) {
+          renderMessages();
+          scrollToBottom();
+        }
+      }
+    } catch (err) {
+      console.error('File upload error:', err);
+      showToast('Failed to upload file', 'error');
+    }
+  } else {
+    showToast('Not connected to backend', 'error');
+  }
   event.target.value = '';
 }
 
@@ -1510,43 +1587,67 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('visible');
 }
 
-function createServer() {
+async function createServer() {
   const name = document.getElementById('newServerName').value.trim();
   if (!name) return;
 
-  const serverId = 'custom-' + Date.now();
-  const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  // Use backend API to create the server
+  if (typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+    try {
+      const result = await NexusAPI.createServer({ name });
+      if (result.success) {
+        const srv = result.server;
+        const serverId = srv.id;
+        const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
-  servers[serverId] = {
-    name: name,
-    channels: {
-      'Text Channels': [
-        { id: serverId + '-general', name: 'general', type: 'text', icon: '#', topic: `Welcome to ${name}!` },
-        { id: serverId + '-chat', name: 'chat', type: 'text', icon: '#', topic: 'General chat' }
-      ],
-      'Voice Channels': [
-        { id: serverId + '-vc', name: 'General', type: 'voice', icon: '🔊', voiceUsers: [] }
-      ]
+        // Build channels structure from backend response
+        const channelsObj = {};
+        if (srv.categories) {
+          for (const cat of srv.categories) {
+            channelsObj[cat.name] = (cat.channels || []).map(ch => ({
+              id: ch.id,
+              name: ch.name,
+              type: ch.type || 'text',
+              icon: ch.icon || (ch.type === 'voice' ? '🔊' : '#'),
+              topic: ch.topic || '',
+              voiceUsers: []
+            }));
+          }
+        }
+        if (Object.keys(channelsObj).length === 0) {
+          channelsObj['Text Channels'] = [
+            { id: serverId + '-general', name: 'general', type: 'text', icon: '#', topic: `Welcome to ${name}!` }
+          ];
+        }
+
+        servers[serverId] = { name: name, channels: channelsObj };
+
+        // Add server icon to nav
+        const nav = document.getElementById('serverNav');
+        const separator = nav.querySelectorAll('.server-separator')[1];
+        const icon = document.createElement('div');
+        icon.className = 'server-icon server-item';
+        icon.dataset.tooltip = name;
+        icon.dataset.server = serverId;
+        icon.textContent = initials;
+        icon.onclick = () => switchServer(serverId);
+        nav.insertBefore(icon, separator);
+
+        closeModal('createServerModal');
+        document.getElementById('newServerName').value = '';
+        switchServer(serverId);
+        setupTooltips();
+        showToast(`Space "${name}" created! 🎉`);
+      } else {
+        showToast('Failed to create space: ' + (result.error || 'Unknown error'), 'error');
+      }
+    } catch (err) {
+      console.error('createServer error:', err);
+      showToast('Failed to create space', 'error');
     }
-  };
-
-  // Add server icon
-  const nav = document.getElementById('serverNav');
-  const separator = nav.querySelectorAll('.server-separator')[1];
-  const icon = document.createElement('div');
-  icon.className = 'server-icon server-item';
-  icon.dataset.tooltip = name;
-  icon.dataset.server = serverId;
-  icon.textContent = initials;
-  icon.onclick = () => switchServer(serverId);
-  nav.insertBefore(icon, separator);
-
-  closeModal('createServerModal');
-  document.getElementById('newServerName').value = '';
-  switchServer(serverId);
-  setupTooltips();
-
-  showToast(`Space "${name}" created! 🎉`);
+  } else {
+    showToast('Not connected to backend', 'error');
+  }
 }
 
 // ============ TOAST NOTIFICATIONS ============
@@ -1863,7 +1964,7 @@ async function startScreenStream() {
     if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
     channelMessages[activeChannel].push({
       id: genMsgId(),
-      userId: 'u-self',
+      userId: (currentUser.id || 'u-self'),
       content: '',
       timestamp: new Date(),
       isSystem: true,
@@ -2158,7 +2259,7 @@ function processSlashCommand(content) {
   const args = parts.slice(1).join(' ');
 
   if (typeof NexusSDK !== 'undefined') {
-    NexusSDK.commands.execute(cmdName, { args, channelId: activeChannel, userId: 'u-self' })
+    NexusSDK.commands.execute(cmdName, { args, channelId: activeChannel, userId: (currentUser.id || 'u-self') })
       .then(result => {
         if (result.success && result.result) {
           if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
@@ -2183,7 +2284,7 @@ function processSlashCommand(content) {
 // Process bot prefix commands
 function processBotCommands(content, msg) {
   if (typeof NexusSDK !== 'undefined') {
-    NexusSDK.bots.processMessage({ content, userId: 'u-self', channelId: activeChannel })
+    NexusSDK.bots.processMessage({ content, userId: (currentUser.id || 'u-self'), channelId: activeChannel })
       .then(response => {
         if (response) {
           if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
@@ -2623,7 +2724,7 @@ function shareTwitchStream() {
     if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
     channelMessages[activeChannel].push({
       id: genMsgId(),
-      userId: 'u-self',
+      userId: (currentUser.id || 'u-self'),
       content: shareText,
       timestamp: new Date(),
       reactions: []
@@ -2857,7 +2958,7 @@ function finalizeServerCreation() {
   closeWizard();
 
   if (typeof NexusServerManager !== 'undefined') {
-    const managed = NexusServerManager.create({ name, ownerId: 'u-self' }, wizardTemplate);
+    const managed = NexusServerManager.create({ name, ownerId: (currentUser.id || 'u-self') }, wizardTemplate);
 
     // Convert to app server format
     const sidebarData = managed.toSidebarData();
@@ -3290,7 +3391,7 @@ function startWatchParty() {
   closeModal('watchPartyModal');
 
   const party = NexusWatchParty.create({
-    hostId: 'u-self',
+    hostId: (currentUser.id || 'u-self'),
     hostName: currentUser.name,
     title: name,
     source: { type: wpSourceType, url },
@@ -3347,7 +3448,7 @@ function showWatchPartyUI(party) {
 
 function leaveWatchParty() {
   if (activeWatchParty) {
-    NexusWatchParty.leave(activeWatchParty.id, 'u-self');
+    NexusWatchParty.leave(activeWatchParty.id, (currentUser.id || 'u-self'));
     activeWatchParty = null;
   }
   document.getElementById('watchPartyContainer').classList.remove('active');
@@ -3393,7 +3494,7 @@ function sendWPChat() {
   const msg = input.value.trim();
   if (!msg || !activeWatchParty) return;
 
-  NexusWatchParty.sendChat(activeWatchParty.id, 'u-self', currentUser.name, msg);
+  NexusWatchParty.sendChat(activeWatchParty.id, (currentUser.id || 'u-self'), currentUser.name, msg);
   appendWPChatMsg({ userName: currentUser.name, message: msg, color: currentUser.color });
   input.value = '';
 }
@@ -3410,7 +3511,7 @@ function appendWPChatMsg(msg) {
 
 function sendWPReaction(emoji) {
   if (!activeWatchParty) return;
-  NexusWatchParty.addReaction(activeWatchParty.id, emoji, 'u-self');
+  NexusWatchParty.addReaction(activeWatchParty.id, emoji, (currentUser.id || 'u-self'));
 
   // Float the emoji
   const container = document.getElementById('wpFloatingReactions');
@@ -3471,7 +3572,7 @@ console.log('%c📖 Open dev-portal.html for documentation', 'font-size:12px;col
             if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
             channelMessages[activeChannel].push({
               id: 'msg-sdk-' + Date.now(),
-              userId: 'u-self',
+              userId: (currentUser.id || 'u-self'),
               content: result,
               timestamp: new Date().toISOString(),
               reactions: [],
@@ -3509,7 +3610,7 @@ console.log('%c📖 Open dev-portal.html for documentation', 'font-size:12px;col
       if (!channelMessages[activeChannel]) channelMessages[activeChannel] = [];
       channelMessages[activeChannel].push({
         id: 'msg-local-' + Date.now(),
-        userId: 'u-self',
+        userId: (currentUser.id || 'u-self'),
         content: content,
         timestamp: new Date().toISOString(),
         reactions: []

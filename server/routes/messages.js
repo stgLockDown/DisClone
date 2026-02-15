@@ -68,8 +68,6 @@ router.get('/channels/:id/messages', requireAuth, async (req, res) => {
         );
         reactions = result.rows;
       } else {
-        const Database = require('better-sqlite3');
-        const path = require('path');
         const db = require('../db').getRawDB();
         reactions = db.prepare(
           `SELECT r.message_id, r.emoji, r.user_id FROM reactions r WHERE r.message_id IN (${placeholders}) ORDER BY r.created_at ASC`

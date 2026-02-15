@@ -449,7 +449,7 @@ function handleSignup() {
 // Apply authenticated user to the app's data model
 function applyUserToApp(user) {
   if (typeof currentUser !== 'undefined') {
-    currentUser.id = 'u-self';
+    currentUser.id = user.id;
     currentUser.name = user.displayName;
     currentUser.tag = user.tag;
     currentUser.color = user.color;
@@ -461,6 +461,22 @@ function applyUserToApp(user) {
     currentUser.bannerColor = user.bannerColor || '#dc2626';
     currentUser.customStatus = user.customStatus || '';
     currentUser._authId = user.id;
+
+    // Also register in users map so messages render correctly
+    if (typeof users !== 'undefined') {
+      users[user.id] = {
+        name: user.displayName,
+        initials: user.initials,
+        color: user.color,
+        status: user.status,
+        avatar: user.avatar,
+        avatarEmoji: user.avatarEmoji,
+        id: user.id,
+        tag: user.tag,
+        about: user.about,
+        roleClass: ''
+      };
+    }
   }
 
   // Update UI elements
