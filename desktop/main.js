@@ -1,12 +1,14 @@
 /**
  * Nexus Chat Desktop — Main Process
  * Electron wrapper that connects to the Railway-hosted Nexus Chat server.
+ * Includes auto-update via GitHub Releases — users install once, updates forever.
  */
 const { app, BrowserWindow, Menu, Tray, nativeImage, shell,
         globalShortcut, ipcMain, screen, dialog, Notification } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 const config = require('./config');
+const updater = require('./updater');
 
 let mainWindow = null;
 let splashWindow = null;
@@ -44,7 +46,7 @@ if (!gotLock) {
 // ============ SPLASH SCREEN ============
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
-    width: 420, height: 480,
+    width: 420, height: 520,
     frame: false, transparent: false, resizable: false, skipTaskbar: true,
     backgroundColor: config.WINDOW.BACKGROUND_COLOR,
     icon: config.PATHS.ICON,
@@ -57,6 +59,11 @@ function createSplashWindow() {
   splashWindow.loadFile(config.PATHS.SPLASH);
   splashWindow.center();
   splashWindow.setAlwaysOnTop(true);
+
+  // Give updater access to splash for progress display
+  splashWindow.webContents.on('did-finish-load', () => {
+    updater.setSplashWindow(splashWindow.webContents);
+  });
 }
 
 function updateSplashStatus(message, type = '') {
@@ -104,6 +111,11 @@ function createMainWindow() {
 
   mainWindow = new BrowserWindow(opts);
   if (wasMaximized) mainWindow.maximize();
+
+  // Give updater access to main window for notifications
+  mainWindow.webContents.on('did-finish-load', () => {
+    updater.setMainWindow(mainWindow.webContents);
+  });
 
   mainWindow.on('close', (e) => {
     if (!isQuitting && store.get('minimizeToTray')) {
@@ -179,9 +191,33 @@ async function connectToServer() {
   return null;
 }
 
+// ============ APP LAUNCH SEQUENCE ============
 async function loadApp() {
+  // 1. Show splash screen
   if (config.APP.SHOW_SPLASH) createSplashWindow();
+
+  // 2. Check for updates FIRST (only in packaged builds)
+  if (app.isPackaged) {
+    updateSplashStatus('Checking for updates...');
+    const updateResult = await updater.checkForUpdates(20000);
+    
+    if (updateResult.status === 'up-to-date') {
+      updateSplashStatus('App is up to date!', 'success');
+      await new Promise(r => setTimeout(r, 800));
+    } else if (updateResult.status === 'error' || updateResult.status === 'timeout') {
+      // Update check failed — continue launching anyway
+      updateSplashStatus('Launching...', 'success');
+      await new Promise(r => setTimeout(r, 500));
+    }
+    // If update was downloaded, quitAndInstall was called — we won't reach here
+  } else {
+    console.log('[Updater] Skipping update check in dev mode');
+  }
+
+  // 3. Connect to server
   const connectedURL = await connectToServer();
+
+  // 4. Create main window and load the app
   createMainWindow();
 
   if (connectedURL) {
@@ -219,6 +255,18 @@ function createTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Nexus Chat', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
     { type: 'separator' },
+    { label: `Version ${app.getVersion()}`, enabled: false },
+    { label: 'Check for Updates', click: async () => {
+      if (app.isPackaged) {
+        const result = await updater.checkForUpdates(15000);
+        if (result.status === 'up-to-date') {
+          dialog.showMessageBox({ type: 'info', title: 'No Updates', message: '✅ You\'re running the latest version!', detail: `Current version: v${app.getVersion()}` });
+        }
+      } else {
+        dialog.showMessageBox({ type: 'info', title: 'Dev Mode', message: 'Auto-update is disabled in development mode.' });
+      }
+    }},
+    { type: 'separator' },
     { label: 'Minimize to Tray', type: 'checkbox', checked: store.get('minimizeToTray'), click: (item) => store.set('minimizeToTray', item.checked) },
     { label: 'Notifications', type: 'checkbox', checked: store.get('notifications'), click: (item) => store.set('notifications', item.checked) },
     { type: 'separator' },
@@ -240,12 +288,14 @@ function setupIPC() {
     if (url && mainWindow) mainWindow.loadURL(url);
   });
   ipcMain.handle('get-server-url', () => serverURL);
+  ipcMain.handle('get-app-version', () => app.getVersion());
   ipcMain.handle('get-settings', () => ({
     minimizeToTray: store.get('minimizeToTray'),
     autoLaunch: store.get('autoLaunch'),
     startMinimized: store.get('startMinimized'),
     notifications: store.get('notifications'),
-    serverURL
+    serverURL,
+    version: app.getVersion()
   }));
   ipcMain.on('update-setting', (ev, key, value) => {
     store.set(key, value);
@@ -270,9 +320,14 @@ function setupIPC() {
 // ============ APP LIFECYCLE ============
 app.whenReady().then(async () => {
   if (process.platform === 'win32') app.setAppUserModelId('com.nexuschat.desktop');
+  
+  // Initialize auto-updater
+  updater.init();
+  
   setupIPC();
   createTray();
   await loadApp();
+  
   globalShortcut.register('CommandOrControl+Shift+N', () => {
     if (mainWindow) {
       mainWindow.isVisible() && mainWindow.isFocused() ? mainWindow.hide() : (mainWindow.show(), mainWindow.focus());

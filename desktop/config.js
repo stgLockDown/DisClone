@@ -16,6 +16,9 @@ const config = {
     'http://localhost:8080'
   ],
 
+  // GitHub Releases URL for update info
+  UPDATE_URL: 'https://github.com/stgLockDown/DisClone/releases',
+
   WINDOW: {
     WIDTH: 1280,
     HEIGHT: 800,
@@ -33,7 +36,10 @@ const config = {
     SPLASH_TIMEOUT: 15000,
     CONNECTION_TIMEOUT: 30000,
     MAX_RETRIES: 3,
-    RETRY_DELAY: 2000
+    RETRY_DELAY: 2000,
+    // Auto-update settings
+    CHECK_FOR_UPDATES: true,
+    UPDATE_CHECK_INTERVAL: 30 * 60 * 1000  // Check every 30 minutes while running
   },
 
   PATHS: {

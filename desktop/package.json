@@ -1,6 +1,6 @@
 {
   "name": "nexus-chat-desktop",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Nexus Chat — Desktop client for the real-time communication platform",
   "main": "main.js",
   "author": {
@@ -27,13 +27,21 @@
     "appId": "com.nexuschat.desktop",
     "productName": "Nexus Chat",
     "copyright": "Copyright © 2025 Nexus Team",
-    "publish": null,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "stgLockDown",
+        "repo": "DisClone",
+        "releaseType": "release"
+      }
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "assets"
     },
     "files": [
       "main.js",
+      "updater.js",
       "preload.js",
       "config.js",
       "splash.html",
@@ -46,10 +54,6 @@
         {
           "target": "nsis",
           "arch": ["x64"]
-        },
-        {
-          "target": "portable",
-          "arch": ["x64"]
         }
       ],
       "icon": "assets/icon.ico",
@@ -58,15 +62,13 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Nexus Chat",
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",
       "installerHeaderIcon": "assets/icon.ico"
-    },
-    "portable": {
-      "artifactName": "NexusChat-Portable-${version}.${ext}"
     },
     "mac": {
       "target": ["dmg"],
@@ -80,7 +82,8 @@
     }
   },
   "dependencies": {
-    "electron-store": "^8.1.0"
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^28.1.0",

@@ -17,19 +17,95 @@
       <div class="logo"><span class="logo-text">N</span></div>
     </div>
     <h1 class="app-name">Nexus Chat</h1>
-    <p class="app-version">v3.3.0</p>
-    <div class="loading-bar-container"><div class="loading-bar"></div></div>
-    <p class="status" id="status">Connecting to server...</p>
-    <button class="retry-btn" id="retryBtn" onclick="window.electronAPI.retry()">Retry Connection</button>
+    <p class="app-version" id="appVersion">v3.4.0</p>
+
+    <!-- Progress bar for updates & loading -->
+    <div class="progress-container" id="progressContainer">
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-label" id="progressLabel"></div>
+    </div>
+
+    <!-- Generic loading bar (indeterminate) -->
+    <div class="loading-bar-container" id="loadingBar">
+      <div class="loading-bar"></div>
+    </div>
+
+    <p class="status" id="status">Starting up...</p>
+    <button class="retry-btn" id="retryBtn" onclick="window.electronAPI?.retry()">Retry Connection</button>
   </div>
+
   <script>
+    // Show version from Electron
     if (window.electronAPI) {
+      window.electronAPI.getAppVersion().then(v => {
+        document.getElementById('appVersion').textContent = 'v' + v;
+      }).catch(() => {});
+
+      // Connection status updates
       window.electronAPI.onStatusUpdate((status, type) => {
         const el = document.getElementById('status');
         const btn = document.getElementById('retryBtn');
         el.textContent = status;
         el.className = 'status' + (type ? ' ' + type : '');
         btn.classList.toggle('visible', type === 'error');
+      });
+
+      // Auto-updater status updates
+      window.electronAPI.onUpdaterStatus((payload) => {
+        const { message, type, data } = payload;
+        const statusEl = document.getElementById('status');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressLabel = document.getElementById('progressLabel');
+        const loadingBar = document.getElementById('loadingBar');
+
+        statusEl.textContent = message;
+        statusEl.className = 'status';
+
+        switch (type) {
+          case 'checking':
+            statusEl.classList.add('checking');
+            progressContainer.classList.remove('visible');
+            loadingBar.classList.add('visible');
+            break;
+
+          case 'update-available':
+            statusEl.classList.add('update-available');
+            loadingBar.classList.remove('visible');
+            break;
+
+          case 'downloading':
+            statusEl.classList.add('downloading');
+            progressContainer.classList.add('visible');
+            loadingBar.classList.remove('visible');
+            if (data && data.percent !== undefined) {
+              progressFill.style.width = data.percent + '%';
+              progressLabel.textContent = data.transferred + ' / ' + data.total + ' MB';
+            }
+            break;
+
+          case 'ready':
+            statusEl.classList.add('success');
+            progressContainer.classList.add('visible');
+            progressFill.style.width = '100%';
+            progressLabel.textContent = 'Installing update...';
+            break;
+
+          case 'up-to-date':
+            statusEl.classList.add('success');
+            progressContainer.classList.remove('visible');
+            loadingBar.classList.add('visible');
+            break;
+
+          case 'skip':
+          case 'error':
+            statusEl.classList.add('error');
+            progressContainer.classList.remove('visible');
+            loadingBar.classList.add('visible');
+            break;
+        }
       });
     }
   </script>
