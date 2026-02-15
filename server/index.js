@@ -149,7 +149,7 @@ app.get('/api/health', (req, res) => {
   process.stdout.write('[Health] Health check requested\n');
   res.json({
     status: 'ok',
-    version: '3.2.0',
+    version: '3.4.0',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     database: process.env.DATABASE_TYPE || 'sqlite',
@@ -165,7 +165,7 @@ app.get('/', (req, res) => {
   } else {
     res.json({ 
       message: 'Nexus Chat API', 
-      version: '3.2.0',
+      version: '3.4.0',
       health: '/api/health' 
     });
   }

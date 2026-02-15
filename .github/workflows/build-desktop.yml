@@ -14,6 +14,8 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,7 +31,7 @@ jobs:
 
       - name: Build Windows exe
         working-directory: desktop
-        run: npm run build:win
+        run: npx electron-builder --win --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,13 +41,14 @@ jobs:
           name: windows-artifacts
           path: |
             desktop/dist/NexusChat-Setup-*.exe
-            desktop/dist/*.yml
-            desktop/dist/*.yaml
+            desktop/dist/latest.yml
             desktop/dist/*.blockmap
           retention-days: 30
 
   build-mac:
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -61,7 +64,7 @@ jobs:
 
       - name: Build macOS dmg
         working-directory: desktop
-        run: npm run build:mac
+        run: npx electron-builder --mac --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,13 +75,14 @@ jobs:
           path: |
             desktop/dist/*.dmg
             desktop/dist/*.zip
-            desktop/dist/*.yml
-            desktop/dist/*.yaml
+            desktop/dist/latest-mac.yml
             desktop/dist/*.blockmap
           retention-days: 30
 
   build-linux:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -94,7 +98,7 @@ jobs:
 
       - name: Build Linux packages
         working-directory: desktop
-        run: npm run build:linux
+        run: npx electron-builder --linux --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -105,8 +109,7 @@ jobs:
           path: |
             desktop/dist/*.AppImage
             desktop/dist/*.deb
-            desktop/dist/*.yml
-            desktop/dist/*.yaml
+            desktop/dist/latest-linux.yml
           retention-days: 30
 
   release:
@@ -121,8 +124,8 @@ jobs:
         with:
           path: artifacts
 
-      - name: List artifacts
-        run: find artifacts -type f | head -50
+      - name: List all artifacts
+        run: find artifacts -type f
 
       - name: Determine version tag
         id: version
@@ -150,18 +153,8 @@ jobs:
             | Windows  | `NexusChat-Setup-*.exe` |
             | macOS    | `*.dmg` |
             | Linux    | `*.AppImage` or `*.deb` |
-            
-            ### What's New
-            See commit history for detailed changes.
           files: |
-            artifacts/**/*.exe
-            artifacts/**/*.dmg
-            artifacts/**/*.zip
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
-            artifacts/**/*.yml
-            artifacts/**/*.yaml
-            artifacts/**/*.blockmap
+            artifacts/**/*
           draft: false
           prerelease: false
           generate_release_notes: true
