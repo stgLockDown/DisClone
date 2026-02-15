@@ -818,9 +818,21 @@ function renderMembers() {
   const container = document.getElementById('membersList');
   container.innerHTML = '';
 
-  // Get members for the current server from the users object
-  // Filter to only show members of the active server
-  const serverMembers = Object.values(users).filter(u => u.id && u.id !== currentUser.id);
+  // Get members for the current server — use backend data if available
+  let serverMembers = [];
+  const serverData = typeof NexusBackend !== 'undefined' ? NexusBackend.getServersCache()?.[activeServer] : null;
+  
+  if (serverData && serverData.members) {
+    // Use actual server members from backend
+    serverMembers = serverData.members
+      .filter(m => m.id !== currentUser.id)
+      .map(m => users[m.id] || m);
+  } else {
+    // Fallback: filter users but exclude bots
+    serverMembers = Object.values(users).filter(u => 
+      u.id && u.id !== currentUser.id && !u.id.startsWith('bot-') && !u.isBot
+    );
+  }
   
   const onlineMembers = serverMembers.filter(u => u.status === 'online');
   const idleMembers = serverMembers.filter(u => u.status === 'idle');
@@ -2193,30 +2205,8 @@ let chatSyncEnabled = true;
 let twitchChatUnsubscribe = null;
 let twitchAlertUnsubscribe = null;
 
-// Add Twitch Hub server to servers list
-servers['twitch-hub'] = {
-  name: 'Streamer Hub',
-  isTwitchHub: true,
-  channels: {
-    'Streams': [
-      { id: 'th-live', name: 'live-streams', type: 'text', icon: '🔴', topic: 'Currently live streams from people you follow' },
-      { id: 'th-clips', name: 'clips', type: 'text', icon: '🎬', topic: 'Best clips from the community' },
-      { id: 'th-highlights', name: 'highlights', type: 'text', icon: '⭐', topic: 'Stream highlights and VODs' }
-    ],
-    'Community': [
-      { id: 'th-general', name: 'streamer-chat', type: 'text', icon: '#', topic: 'Chat with fellow streamers' },
-      { id: 'th-promo', name: 'self-promo', type: 'text', icon: '📢', topic: 'Share your stream and content' },
-      { id: 'th-collab', name: 'collabs', type: 'text', icon: '🤝', topic: 'Find collaboration partners' },
-      { id: 'th-tips', name: 'stream-tips', type: 'text', icon: '💡', topic: 'Tips and tricks for streamers' }
-    ],
-    'Voice': [
-      { id: 'th-vc1', name: 'Watch Party', type: 'voice', icon: '🔊', voiceUsers: [] },
-      { id: 'th-vc2', name: 'Co-Stream', type: 'voice', icon: '🔊', voiceUsers: [] }
-    ]
-  }
-};
-
-// No seed messages — all messages loaded from backend
+// No hardcoded servers — all servers loaded from backend
+// Twitch Hub is disabled in production (no hardcoded servers)
 
 function toggleTwitchConnect() {
   const btn = document.getElementById('twitchConnectBtn');
@@ -3254,7 +3244,7 @@ function deleteServerChannel(channelId) {
 
 // Hook into sidebar header for server settings
 function toggleServerDropdown() {
-  if (activeServer === 'home' || activeServer === 'twitch-hub') {
+  if (activeServer === 'home') {
     showToast('Server settings');
     return;
   }
