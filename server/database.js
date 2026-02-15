@@ -195,7 +195,20 @@ function initializeDatabase() {
       PRIMARY KEY (user_id, channel_id)
     );
 
+    CREATE TABLE IF NOT EXISTS invites (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+      creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      max_uses INTEGER DEFAULT 0,
+      uses INTEGER DEFAULT 0,
+      expires_at TEXT DEFAULT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     -- Indexes for performance
+    CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(code);
+    CREATE INDEX IF NOT EXISTS idx_invites_server ON invites(server_id);
     CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
     CREATE INDEX IF NOT EXISTS idx_server_members_user ON server_members(user_id);

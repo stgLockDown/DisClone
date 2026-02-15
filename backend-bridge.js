@@ -403,17 +403,24 @@ const NexusBackend = (() => {
   // ============ REALTIME HANDLERS ============
 
   function setupRealtimeHandlers() {
-    // New message from another user
+    // New message from another user (or echoed back from server)
     NexusAPI.on('message:new', (msg) => {
       const frontendMsg = mapMessageToFrontend(msg);
       const channelId = msg.channelId;
 
+      // Skip if this message is already in the cache (sent by us via sendMessage)
       if (!channelMessagesCache[channelId]) channelMessagesCache[channelId] = [];
+      const alreadyExists = channelMessagesCache[channelId].some(m => m.id === frontendMsg.id);
+      if (alreadyExists) return;
+
       channelMessagesCache[channelId].push(frontendMsg);
 
       if (typeof window.channelMessages !== 'undefined') {
         if (!window.channelMessages[channelId]) window.channelMessages[channelId] = [];
-        window.channelMessages[channelId].push(frontendMsg);
+        // Also check window.channelMessages to avoid duplicates
+        if (!window.channelMessages[channelId].some(m => m.id === frontendMsg.id)) {
+          window.channelMessages[channelId].push(frontendMsg);
+        }
       }
 
       // If this channel is currently active, render the new message
@@ -653,6 +660,7 @@ const NexusBackend = (() => {
 
     loadDMs,
     openDM,
+    rebuildServersData,
 
     isUserOnline,
     getServersCache: () => serversCache,

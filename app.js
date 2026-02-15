@@ -97,6 +97,32 @@ document.addEventListener('DOMContentLoaded', () => {
   populateEmojiPicker();
   setupSettingsNav();
   initPluginSystem();
+
+  // Scroll-to-load-more: load older messages when scrolling to top
+  const scroller = document.getElementById('messagesScroller');
+  if (scroller) {
+    let loadingMore = false;
+    scroller.addEventListener('scroll', async () => {
+      if (scroller.scrollTop < 100 && !loadingMore && activeChannel) {
+        if (typeof NexusBackend !== 'undefined' && typeof NexusAPI !== 'undefined' && NexusAPI.isAuthenticated()) {
+          loadingMore = true;
+          try {
+            const prevHeight = scroller.scrollHeight;
+            const result = await NexusBackend.loadMoreMessages(activeChannel);
+            if (result && result.messages && result.messages.length > 0) {
+              renderMessages();
+              // Maintain scroll position after prepending older messages
+              const newHeight = scroller.scrollHeight;
+              scroller.scrollTop = newHeight - prevHeight;
+            }
+          } catch (err) {
+            console.error('[Scroll] Load more error:', err);
+          }
+          loadingMore = false;
+        }
+      }
+    });
+  }
 });
 
 // ============ WELCOME LANDING ============
@@ -1568,7 +1594,7 @@ function renderSettingsContent(section) {
           <p style="font-size:16px;color:var(--text-secondary);margin-bottom:20px;">Are you sure you want to log out?</p>
           <div style="display:flex;gap:12px;justify-content:center;">
             <button class="btn btn-secondary" onclick="document.getElementById('settingsOverlay').classList.remove('visible')">Cancel</button>
-            <button class="btn btn-danger">Log Out</button>
+            <button class="btn btn-danger" onclick="if(typeof NexusBackend!=='undefined'){NexusBackend.handleLogout();}else{localStorage.clear();sessionStorage.clear();location.reload();}">Log Out</button>
           </div>
         </div>
       </div>`
@@ -1711,12 +1737,17 @@ async function joinServerViaInvite() {
         showToast(`Joined ${result.serverName}! 🎉`);
         closeModal('joinServerModal');
         input.value = '';
-        // Reload servers
-        if (typeof NexusBackend !== 'undefined') {
+        // Refresh server list without full page reload
+        if (typeof NexusBackend !== 'undefined' && typeof NexusAPI !== 'undefined') {
           const serversResult = await NexusAPI.getServers();
           if (serversResult.success) {
-            // Refresh server list
-            location.reload();
+            NexusBackend.rebuildServersData(serversResult.servers);
+            renderServerList();
+            // Switch to the newly joined server
+            const newServer = serversResult.servers.find(s => s.name === result.serverName);
+            if (newServer) {
+              switchServer(newServer.id);
+            }
           }
         }
       } else {
@@ -1730,14 +1761,23 @@ async function joinServerViaInvite() {
 
 // ============ TOAST NOTIFICATIONS ============
 
-function showToast(message) {
+function showToast(message, type) {
   const toast = document.createElement('div');
+  let borderColor = 'var(--border-default)';
+  let bgColor = 'var(--bg-floating)';
+  if (type === 'error') {
+    borderColor = 'var(--nexus-danger, #ef4444)';
+    bgColor = 'rgba(239, 68, 68, 0.15)';
+  } else if (type === 'success') {
+    borderColor = 'var(--nexus-success, #22c55e)';
+    bgColor = 'rgba(34, 197, 94, 0.15)';
+  }
   toast.style.cssText = `
     position: fixed;
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: var(--bg-floating);
+    background: ${bgColor};
     color: var(--text-primary);
     padding: 10px 20px;
     border-radius: 8px;
@@ -1747,7 +1787,7 @@ function showToast(message) {
     z-index: 9999;
     opacity: 0;
     transition: opacity 0.2s, transform 0.2s;
-    border: 1px solid var(--border-default);
+    border: 1px solid ${borderColor};
     pointer-events: none;
   `;
   toast.textContent = message;
