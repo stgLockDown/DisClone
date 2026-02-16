@@ -312,6 +312,39 @@ router.post('/:id/channels', requireAuth, async (req, res) => {
   }
 });
 
+// ============ PATCH /api/servers/:id/channels/:channelId ============
+router.patch('/:id/channels/:channelId', requireAuth, async (req, res) => {
+  try {
+    const serverId = req.params.id;
+    const channelId = req.params.channelId;
+    const { name, topic, icon } = req.body;
+
+    const server = await dbGet('SELECT * FROM servers WHERE id = ?', serverId);
+    if (!server) return res.status(404).json({ success: false, error: 'Server not found' });
+    if (server.owner_id !== req.user.id) return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+
+    const channel = await dbGet('SELECT * FROM channels WHERE id = ? AND server_id = ?', channelId, serverId);
+    if (!channel) return res.status(404).json({ success: false, error: 'Channel not found' });
+
+    const updates = [];
+    const values = [];
+    if (name !== undefined) { updates.push('name = ?'); values.push(name); }
+    if (topic !== undefined) { updates.push('topic = ?'); values.push(topic); }
+    if (icon !== undefined) { updates.push('icon = ?'); values.push(icon); }
+
+    if (updates.length === 0) return res.status(400).json({ success: false, error: 'No fields to update' });
+
+    values.push(channelId);
+    await dbRun(`UPDATE channels SET ${updates.join(', ')} WHERE id = ?`, ...values);
+
+    const updated = await dbGet('SELECT * FROM channels WHERE id = ?', channelId);
+    res.json({ success: true, channel: formatChannel(updated) });
+  } catch (err) {
+    console.error('[Servers] Update channel error:', err);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // ============ GET /api/servers/:id/members ============
 router.get('/:id/members', requireAuth, async (req, res) => {
   try {

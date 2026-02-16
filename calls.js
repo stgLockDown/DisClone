@@ -2,6 +2,15 @@
 // NEXUS CHAT — Direct Calls & Server Discovery
 // ============================================
 
+// Helper: check if a channel ID belongs to a DM channel
+function isDMChannel(channelId) {
+  if (!channelId) return false;
+  const homeServer = window.servers?.['home'];
+  if (!homeServer) return false;
+  const dmChannels = homeServer.channels?.['dm'] || [];
+  return dmChannels.some(ch => ch.id === channelId);
+}
+
 // ============ CALL STATE ============
 const callState = {
   active: false,
@@ -295,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const origSwitchChannel = window.switchChannel;
   window.switchChannel = function(channelId) {
     origSwitchChannel(channelId);
-    if (channelId.startsWith('dm-')) {
+    if (isDMChannel(channelId)) {
       addDMCallButtons(channelId);
       renderCallHistoryMessages(channelId);
     } else {
@@ -307,40 +316,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function enhanceDMSystem() {
-  // Add more DM contacts
+  // Initialize call history for existing DM channels (loaded from backend)
   const homeServer = servers['home'];
   if (homeServer) {
-    const existingIds = homeServer.channels['dm'].map(c => c.id);
-    const additionalDMs = [
-      { id: 'dm-riley', name: 'Riley Kim', type: 'dm', icon: '💬' },
-      { id: 'dm-drew', name: 'Drew Park', type: 'dm', icon: '💬' },
-      { id: 'dm-sam', name: 'Sam Torres', type: 'dm', icon: '💬' },
-      { id: 'dm-avery', name: 'Avery Quinn', type: 'dm', icon: '💬' },
-      { id: 'dm-taylor', name: 'Taylor Swift... jk', type: 'dm', icon: '💬' }
-    ];
-    additionalDMs.forEach(dm => {
-      if (!existingIds.includes(dm.id)) {
-        homeServer.channels['dm'].push(dm);
+    const dmChannels = homeServer.channels['dm'] || [];
+    dmChannels.forEach(ch => {
+      if (ch && !callHistory[ch.id]) {
+        callHistory[ch.id] = [];
       }
     });
   }
-
-  // Initialize call history for DMs
-  Object.keys(servers['home']?.channels?.['dm'] || {}).forEach(idx => {
-    const ch = servers['home'].channels['dm'][idx];
-    if (ch && !callHistory[ch.id]) {
-      callHistory[ch.id] = [];
-    }
-  });
-
-  // Add some sample call history
-  callHistory['dm-alex'] = [
-    { type: 'voice', direction: 'outgoing', status: 'completed', duration: '12:34', timestamp: 'Yesterday at 3:45 PM' },
-    { type: 'video', direction: 'incoming', status: 'missed', duration: null, timestamp: 'Yesterday at 1:20 PM' }
-  ];
-  callHistory['dm-maya'] = [
-    { type: 'voice', direction: 'incoming', status: 'completed', duration: '5:21', timestamp: 'Today at 10:15 AM' }
-  ];
 }
 
 // ============ DM CALL BUTTONS IN HEADER ============
@@ -351,7 +336,10 @@ function addDMCallButtons(channelId) {
   // Remove existing call buttons
   removeDMCallButtons();
 
-  const userId = channelId.replace('dm-', 'u-');
+  // Find the DM channel to get the userId
+  const homeServer = servers['home'];
+  const dmChannel = homeServer?.channels?.['dm']?.find(ch => ch.id === channelId);
+  const userId = dmChannel?.userId || channelId.replace('dm-', 'u-');
   const user = users[userId];
   if (!user) return;
 
@@ -847,7 +835,7 @@ function endCall() {
   callState.screenShare = false;
 
   // Re-render messages if in DM
-  if (activeChannel?.startsWith('dm-')) {
+  if (isDMChannel(activeChannel)) {
     renderMessages();
     setTimeout(() => renderCallHistoryMessages(activeChannel), 100);
   }

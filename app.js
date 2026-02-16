@@ -525,7 +525,7 @@ function switchChannel(channelId) {
     return;
   }
 
-  const isDM = ch.type === 'dm' || channelId.startsWith('dm-');
+  const isDM = ch.type === 'dm';
 
   // Update header
   if (isDM) {

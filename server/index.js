@@ -147,6 +147,29 @@ app.delete('/api/channels/:id', requireAuth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
+// ============ FILE UPLOAD ============
+const multer = require('multer');
+const uploadDir = path.join(__dirname, '..', 'uploads');
+const fs = require('fs');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  }
+});
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
+
+app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({ success: true, file: { url: fileUrl, name: req.file.originalname, size: req.file.size, type: req.file.mimetype } });
+});
+
+app.use('/uploads', express.static(uploadDir));
+
 // Health check - must work even before database is ready
 app.get('/api/health', (req, res) => {
   process.stdout.write('[Health] Health check requested\n');

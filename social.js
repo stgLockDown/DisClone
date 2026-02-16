@@ -1830,8 +1830,12 @@ const NexusEncryption = (() => {
   }
 
   function isEncrypted(channelId) {
-    // DMs are always encrypted
-    return channelId && channelId.startsWith('dm-');
+    // DMs are always encrypted — check by channel type in home server DM list
+    if (!channelId) return false;
+    const homeServer = window.servers?.['home'];
+    if (!homeServer) return false;
+    const dmChannels = homeServer.channels?.['dm'] || [];
+    return dmChannels.some(ch => ch.id === channelId);
   }
 
   function getEncryptionInfo(channelId) {
@@ -1908,10 +1912,13 @@ function openEncryptionPanel(channelId) {
   // Get other user for DMs
   let otherUserId = null;
   let otherUser = null;
-  if (channelId && channelId.startsWith('dm-')) {
-    const userKey = channelId.replace('dm-', '');
-    otherUserId = 'u-' + userKey;
-    otherUser = users[otherUserId];
+  const homeServer = window.servers?.['home'];
+  if (homeServer) {
+    const dmChannel = (homeServer.channels?.['dm'] || []).find(ch => ch.id === channelId);
+    if (dmChannel && dmChannel.userId) {
+      otherUserId = dmChannel.userId;
+      otherUser = users[otherUserId];
+    }
   }
 
   const fingerprint = otherUserId ? NexusEncryption.getFingerprint(currentUser.id || 'unknown', otherUserId) : '';

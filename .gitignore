@@ -44,4 +44,4 @@ Thumbs.db
 # Temporary files
 todo.md
 *.tmp
-.cache/
+.cache/uploads/
