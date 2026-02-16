@@ -30,6 +30,7 @@ const servers = {
 
 // Message storage per channel
 const channelMessages = {};
+window.channelMessages = channelMessages;
 
 // Pre-populate some channels with messages
 function generateTimestamp(hoursAgo) {
