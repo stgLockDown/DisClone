@@ -7,7 +7,9 @@
 
 // Overlay users and friends populated from backend
 const overlayUsers = {};
-const friends = [];
+let currentUser = null;
+let activeChannel = null;
+let friends = [];
 
 // Messages loaded from backend
 let overlayMessages = [];
@@ -20,15 +22,98 @@ let isCompact = false;
 let isMuted = false;
 let isDeafened = false;
 
+// Backend API base URL
+const API_BASE = `http://${window.location.hostname}:8090/api`;
+let authToken = localStorage.getItem('nexus_token');
+
+// ============ API HELPERS ============
+
+async function apiCall(endpoint, options = {}) {
+  const url = `${API_BASE}${endpoint}`;
+  const opts = {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Content-Type': 'application/json',
+      ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+    }
+  };
+  
+  const res = await fetch(url, opts);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
 // ============ INITIALIZATION ============
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load user data from backend
+  await loadUserData();
+  
+  // Load friends from backend
+  await loadFriends();
+  
   renderMessages();
   renderFriends();
   setupEventListeners();
   setupIPCListeners();
   showHotkeyHint();
+  
+  // Subscribe to real-time updates
+  if (typeof NexusAPI !== 'undefined') {
+    NexusAPI.subscribeChannel(activeChannel);
+  }
 });
+
+async function loadUserData() {
+  try {
+    const res = await apiCall('/auth/me');
+    if (res.success && res.user) {
+      currentUser = res.user;
+      // Get active server/channel
+      const serversRes = await apiCall('/servers');
+      if (serversRes.success && serversRes.servers?.length > 0) {
+        const server = serversRes.servers[0];
+        const serverRes = await apiCall(`/servers/${server.id}`);
+        if (serverRes.success && serverRes.server) {
+          const generalCat = serverRes.server.categories?.find(c => c.name === 'General');
+          if (generalCat && generalCat.channels?.length > 0) {
+            activeChannel = generalCat.channels[0].id;
+            document.getElementById('overlayChannelName').textContent = `#${generalCat.channels[0].name}`;
+            loadMessages(activeChannel);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Overlay] Failed to load user data:', e);
+  }
+}
+
+async function loadFriends() {
+  try {
+    const res = await apiCall('/friends');
+    if (res.success) {
+      friends = res.friends || [];
+      renderFriends();
+    }
+  } catch (e) {
+    console.error('[Overlay] Failed to load friends:', e);
+  }
+}
+
+async function loadMessages(channelId) {
+  if (!channelId) return;
+  try {
+    const res = await apiCall(`/channels/${channelId}/messages?limit=50`);
+    if (res.success && res.messages) {
+      overlayMessages = res.messages;
+      renderMessages();
+    }
+  } catch (e) {
+    console.error('[Overlay] Failed to load messages:', e);
+  }
+}
 
 // ============ IPC COMMUNICATION ============
 
@@ -218,42 +303,56 @@ function renderMessages() {
   let lastTime = 0;
 
   overlayMessages.forEach((msg) => {
-    const user = overlayUsers[msg.userId] || { name: 'Unknown', initials: '?', color: '#666' };
-    const timeDiff = msg.timestamp - lastTime;
-    const isGrouped = msg.userId === lastUserId && timeDiff < 300000; // 5 min grouping
+    // Support both backend format and legacy format
+    const userId = msg.userId || msg.user?.id || 'unknown';
+    const content = msg.content;
+    const timestamp = msg.createdAt || msg.created_at || msg.timestamp || Date.now();
+    const displayName = msg.user?.displayName || msg.user?.username || overlayUsers[userId]?.name || 'Unknown';
+    const initials = msg.user?.initials || overlayUsers[userId]?.initials || displayName[0].toUpperCase();
+    const color = msg.user?.color || overlayUsers[userId]?.color || '#666';
+    
+    const timeDiff = timestamp - lastTime;
+    const isGrouped = userId === lastUserId && timeDiff < 300000; // 5 min grouping
 
     const msgEl = document.createElement('div');
     msgEl.className = 'overlay-msg' + (isGrouped ? ' grouped' : '');
 
-    const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     if (isGrouped) {
       msgEl.innerHTML = `
         <div class="overlay-msg-avatar placeholder"></div>
         <div class="overlay-msg-content">
-          <div class="overlay-msg-body">${formatContent(msg.content)}</div>
+          <div class="overlay-msg-body">${formatContent(content)}</div>
         </div>
       `;
     } else {
       msgEl.innerHTML = `
-        <div class="overlay-msg-avatar" style="background:${user.color}">${user.initials}</div>
+        <div class="overlay-msg-avatar" style="background:${color}">${initials}</div>
         <div class="overlay-msg-content">
           <div class="overlay-msg-header">
-            <span class="overlay-msg-author" style="color:${user.color}">${user.name}</span>
+            <span class="overlay-msg-author" style="color:${color}">${displayName}</span>
             <span class="overlay-msg-time">${timeStr}</span>
           </div>
-          <div class="overlay-msg-body">${formatContent(msg.content)}</div>
+          <div class="overlay-msg-body">${formatContent(content)}</div>
         </div>
       `;
     }
 
     container.appendChild(msgEl);
-    lastUserId = msg.userId;
-    lastTime = msg.timestamp;
+    lastUserId = userId;
+    lastTime = timestamp;
   });
 
   // Scroll to bottom
   container.scrollTop = container.scrollHeight;
+}
+
+function scrollToBottom() {
+  const container = document.getElementById('overlayMessages');
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 function formatContent(content) {
@@ -270,21 +369,26 @@ function formatContent(content) {
 
 // ============ SEND MESSAGE ============
 
-function sendMessage() {
+async function sendMessage() {
   const input = document.getElementById('overlayInput');
   const content = input.value.trim();
-  if (!content) return;
+  if (!content || !activeChannel) return;
 
-  const msg = {
-    id: ++msgIdCounter,
-    userId: (typeof currentUser !== 'undefined' && currentUser.id) || 'unknown',
-    content: content,
-    timestamp: Date.now()
-  };
-
-  overlayMessages.push(msg);
-  input.value = '';
-  renderMessages();
+  try {
+    const res = await apiCall(`/channels/${activeChannel}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content })
+    });
+    
+    if (res.success && res.message) {
+      overlayMessages.push(res.message);
+      input.value = '';
+      renderMessages();
+      scrollToBottom();
+    }
+  } catch (e) {
+    console.error('[Overlay] Failed to send message:', e);
+  }
 
   // Send to main window via IPC
   if (window.nexusOverlay) {

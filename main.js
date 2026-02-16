@@ -1,11 +1,55 @@
 const { app, BrowserWindow, Menu, Tray, nativeImage, shell, globalShortcut, ipcMain, screen } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
 
 let mainWindow;
 let overlayWindow;
 let tray = null;
 let isQuitting = false;
 let overlayVisible = false;
+let serverProcess = null;
+const SERVER_PORT = 8090;
+
+// ============ START BACKEND SERVER ============
+
+function startServer() {
+  console.log('[Electron] Starting backend server...');
+  
+  // Start the server in a subprocess
+  serverProcess = spawn('node', [path.join(__dirname, 'server', 'index.js')], {
+    env: { ...process.env, PORT: SERVER_PORT.toString() },
+    cwd: __dirname
+  });
+
+  serverProcess.stdout.on('data', (data) => {
+    console.log(`[Server] ${data.toString().trim()}`);
+  });
+
+  serverProcess.stderr.on('data', (data) => {
+    console.error(`[Server Error] ${data.toString().trim()}`);
+  });
+
+  serverProcess.on('error', (error) => {
+    console.error('[Electron] Failed to start server:', error);
+  });
+
+  serverProcess.on('exit', (code) => {
+    console.log(`[Electron] Server process exited with code ${code}`);
+    if (!isQuitting) {
+      // Server crashed, try to restart it
+      console.log('[Electron] Restarting server...');
+      startServer();
+    }
+  });
+}
+
+function stopServer() {
+  if (serverProcess) {
+    console.log('[Electron] Stopping server...');
+    serverProcess.kill('SIGTERM');
+    serverProcess = null;
+  }
+}
 
 // ============ MAIN WINDOW ============
 
@@ -27,7 +71,8 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
+  // Load from local server instead of file
+  mainWindow.loadURL(`http://localhost:${SERVER_PORT}`);
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -78,11 +123,12 @@ function createOverlayWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      webSecurity: false // Allow loading from localhost
     }
   });
 
-  overlayWindow.loadFile('overlay.html');
+  overlayWindow.loadURL(`http://localhost:${SERVER_PORT}/overlay.html`);
 
   // Make it click-through when not interactive
   overlayWindow.setIgnoreMouseEvents(true, { forward: true });
@@ -369,11 +415,18 @@ if (!gotTheLock) {
 
   app.whenReady().then(() => {
     setupIPC();
-    createWindow();
-    createOverlayWindow();
-    createTray();
-    createMenu();
-    registerShortcuts();
+    
+    // Start backend server first
+    startServer();
+    
+    // Wait a moment for server to start, then create windows
+    setTimeout(() => {
+      createWindow();
+      createOverlayWindow();
+      createTray();
+      createMenu();
+      registerShortcuts();
+    }, 2000);
   });
 }
 
@@ -398,4 +451,7 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
   // Unregister all shortcuts
   globalShortcut.unregisterAll();
+  
+  // Stop the server
+  stopServer();
 });

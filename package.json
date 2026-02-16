@@ -2,10 +2,12 @@
   "name": "nexus-chat",
   "version": "3.3.0",
   "description": "Nexus Chat — Real-time communication platform with backend API",
-  "main": "server/index.js",
+  "main": "main.js",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node server/index.js",
+    "start": "electron .",
+    "start-server": "node server/index.js",
+    "dev-server": "node server/index.js",
+    "dev": "npm run start-server & npm run electron",
     "postinstall": "if [ &quot;$DATABASE_TYPE&quot; != &quot;postgres&quot; ]; then npm rebuild better-sqlite3 --build-from-source || true; fi"
   },
   "engines": {
@@ -29,5 +31,8 @@
   },
   "optionalDependencies": {
     "better-sqlite3": "^12.6.2"
+  },
+  "devDependencies": {
+    "electron": "^40.4.1"
   }
 }
