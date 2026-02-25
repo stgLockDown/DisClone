@@ -245,12 +245,6 @@ After first startup, the database seeds with demo users:
 - Create a new account
 - Or use one of the demo accounts above to log in
 
-## 🚀 Live Demo
-
-The app is currently running at: **https://nexuschat-0035i.app.super.myninja.ai**
-
-Try it out with any of the demo accounts above!
-
 ## 📝 Deployment Notes
 
 ### Database
